@@ -19,9 +19,9 @@ import {
 
 const navSections = [
   {
-    title: "rakshit",
+    title: "Overview",
     items: [
-      { to: "/dashboard", label: "rakshit", icon: LayoutDashboard, exact: true },
+      { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
       { to: "/dashboard/transactions", label: "Transactions", icon: List },
       { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
     ],
