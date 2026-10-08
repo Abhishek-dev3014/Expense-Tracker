@@ -30,7 +30,7 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
       const rows = text.split("\n").map(row => row.split(",").map(cell => cell.trim()))
       const headers = rows[0]
       const values = rows.slice(1).filter(row => row.length === headers.length && row.some(cell => cell !== ""))
-      
+
       setHeaders(headers)
       setData(values)
       setStep(2)
@@ -42,7 +42,7 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
     try {
       setImporting(true)
       const token = localStorage.getItem("token")
-      
+
       const transactions = data.map(row => {
         const amount = parseFloat(row[headers.indexOf(mapping.amount)])
         return {
@@ -73,45 +73,45 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-0">
-      <div className="absolute inset-0 bg-[#0b1220]/80 backdrop-blur-xl" onClick={onClose}></div>
-      
-      <div className="relative w-full max-w-2xl p-10 rounded-[3rem] bg-[#161d2a] border border-white/10 shadow-2xl animate-in zoom-in-95 duration-300">
-        <button onClick={onClose} className="absolute top-8 right-8 text-gray-400 hover:text-white transition-colors">
+      <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose}></div>
+
+      <div className="relative w-full max-w-2xl p-6 rounded-xl bg-white border border-stone-200 shadow-sm animate-in zoom-in-95 duration-300">
+        <button onClick={onClose} className="absolute top-8 right-8 text-stone-600 hover:text-stone-800 transition-colors">
           <X size={24} />
         </button>
 
-        <h2 className="text-3xl font-bold text-white mb-2">Import Bank Statement</h2>
-        <p className="text-gray-400 mb-8">Rapidly upload your financial history via CSV.</p>
+        <h2 className="text-3xl font-bold text-stone-800 mb-2">Import Bank Statement</h2>
+        <p className="text-stone-600 mb-8">Rapidly upload your financial history via CSV.</p>
 
         {step === 1 && (
-          <div className="flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-[2.5rem] p-12 hover:border-indigo-500/50 transition-all group bg-white/[0.02]">
-            <div className="w-20 h-20 rounded-3xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <div className="flex flex-col items-center justify-center border-2 border-dashed border-stone-200 rounded-xl p-12 hover:border-emerald-200 transition-all group bg-white">
+            <div className="w-20 h-20 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <Upload size={40} />
             </div>
             <label className="cursor-pointer">
-              <span className="px-8 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
+              <span className="px-8 py-3 rounded-lg bg-emerald-100 hover:bg-emerald-100 text-stone-800 font-bold transition-all shadow-sm shadow-indigo-500/20 active:scale-95">
                 Choose CSV File
               </span>
               <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
             </label>
-            <p className="mt-4 text-sm text-gray-500">Only .csv files supported at this moment.</p>
+            <p className="mt-4 text-sm text-stone-500">Only .csv files supported at this moment.</p>
           </div>
         )}
 
         {step === 2 && (
           <div className="space-y-6">
-            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-4">
-              <FileText className="text-indigo-400" />
-              <span className="text-white font-medium">{file?.name}</span>
-              <span className="text-gray-500 text-sm ml-auto">Detected {data.length} rows</span>
+            <div className="p-6 rounded-lg bg-white border border-stone-200 flex items-center gap-4">
+              <FileText className="text-emerald-800" />
+              <span className="text-stone-800 font-medium">{file?.name}</span>
+              <span className="text-stone-500 text-sm ml-auto">Detected {data.length} rows</span>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
               {['title', 'amount', 'date'].map(field => (
                 <div key={field} className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">{field}</label>
-                  <select 
-                    className="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
+                  <label className="text-xs font-bold text-stone-500 uppercase tracking-wide ml-1">{field}</label>
+                  <select
+                    className="w-full px-6 py-4 rounded-lg bg-white border border-stone-200 text-stone-800 focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
                     value={mapping[field]}
                     onChange={(e) => setMapping({...mapping, [field]: e.target.value})}
                   >
@@ -122,10 +122,10 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
               ))}
             </div>
 
-            <button 
+            <button
               onClick={handleImport}
               disabled={!mapping.title || !mapping.amount || !mapping.date || importing}
-              className="w-full py-5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase tracking-[0.2em] text-sm transition-all shadow-xl shadow-emerald-500/20 active:scale-95 disabled:opacity-40"
+              className="w-full py-5 rounded-lg bg-emerald-100 hover:bg-emerald-100 text-stone-800 font-semibold uppercase tracking-wide text-sm transition-all shadow-sm shadow-emerald-500/20 active:scale-95 disabled:opacity-40"
             >
               {importing ? "Importing Data..." : "Finalize Import"}
             </button>

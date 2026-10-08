@@ -1,95 +1,60 @@
-import { NavLink } from "react-router-dom"
+import Brand from "../ui/Brand"
+import { NavLink, Link } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import {
   LayoutDashboard,
-  BarChart3,
-  List,
+  ChartNoAxesCombined,
+  ArrowLeftRight,
   Target,
-  Brain,
+  Lightbulb,
   FileText,
-  RotateCcw,
+  Repeat2,
   Flag,
   Medal,
   LogOut,
-  User as UserIcon,
-  Users,
-  Sparkles,
+  Wallet,
   X,
+  ArrowUpRight,
+  Sprout,
 } from "lucide-react"
 
-const navSections = [
+const sections = [
   {
-    title: "Overview",
+    title: "Workspace",
     items: [
-      { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
-      { to: "/dashboard/transactions", label: "Transactions", icon: List },
-      { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+      ["", "Overview", LayoutDashboard],
+      ["transactions", "Transactions", ArrowLeftRight],
+      ["analytics", "Analytics", ChartNoAxesCombined],
     ],
   },
   {
-    title: "Planning",
+    title: "Plan & manage",
     items: [
-      { to: "/dashboard/budget", label: "Budgeting", icon: Target },
-      { to: "/dashboard/goals", label: "Savings Goals", icon: Flag },
-      { to: "/dashboard/recurring", label: "Subscriptions", icon: RotateCcw },
-      { to: "/dashboard/debts", label: "Friends & Debts", icon: Users },
+      ["budget", "Budgets", Target],
+      ["goals", "Savings goals", Flag],
+      ["recurring", "Recurring payments", Repeat2],
+      ["debts", "Shared expenses", Wallet],
     ],
   },
   {
-    title: "Intelligence",
+    title: "Discover",
     items: [
-      { to: "/dashboard/insights", label: "AI Insights", icon: Brain },
-      { to: "/dashboard/reports", label: "Reports", icon: FileText },
-      { to: "/dashboard/achievements", label: "Achievements", icon: Medal },
+      ["insights", "Insights", Lightbulb],
+      ["reports", "Reports", FileText],
+      ["achievements", "Achievements", Medal],
     ],
   },
 ]
 
-const NavGroup = ({ title }) => (
-  <p className="mb-3 mt-7 px-1 text-[10px] font-black uppercase tracking-[0.34em] text-slate-500 first:mt-0">
-    {title}
-  </p>
-)
-
-const Sidebar = ({ mobile = false, onClose }) => {
+export default function Sidebar({ mobile = false, onClose }) {
   const { user, logout } = useAuth()
-
-  const linkClass = ({ isActive }) =>
-    `group relative mb-1.5 flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
-      isActive
-        ? "bg-white/[0.11] text-white shadow-[0_16px_40px_rgba(15,23,42,0.28)]"
-        : "text-slate-400 hover:bg-white/[0.06] hover:text-white"
-    }`
-
   return (
-    <aside
-      className={`glass-panel surface-highlight relative flex h-full flex-col overflow-hidden rounded-[2rem] border border-white/10 ${
-        mobile ? "w-full" : "w-[18rem]"
-      }`}
-    >
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute right-[-3rem] top-[-2rem] h-32 w-32 rounded-full bg-emerald-500/14 blur-3xl" />
-        <div className="absolute bottom-8 left-[-2rem] h-28 w-28 rounded-full bg-indigo-500/14 blur-3xl" />
-      </div>
-
-      <div className="relative flex items-center justify-between px-5 pb-4 pt-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 border border-white/10 shadow-2xl pulse-glow group transition-all duration-500 overflow-hidden">
-            <img src="/logo.png" alt="FinTrack AI" className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />
-          </div>
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.34em] text-emerald-300/90">
-              FinTrack AI
-            </p>
-            <h1 className="mt-1 font-['Outfit'] text-2xl font-semibold tracking-tight text-white">
-              Wealth OS
-            </h1>
-          </div>
-        </div>
-
+    <aside className="sidebar">
+      <div className="sidebar-brand">
+        <Brand />
         {mobile && (
           <button
-            className="premium-chip flex h-10 w-10 items-center justify-center rounded-2xl text-slate-300 xl:hidden"
+            className="icon-button"
             onClick={onClose}
             aria-label="Close menu"
           >
@@ -97,79 +62,74 @@ const Sidebar = ({ mobile = false, onClose }) => {
           </button>
         )}
       </div>
-
-      <div className="relative mx-5 rounded-[1.5rem] border border-white/[0.08] bg-white/[0.045] p-4">
-        <div className="mb-3 flex items-start gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.08] text-emerald-300">
-            <UserIcon size={19} />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate font-semibold text-white">{user?.name || "Member"}</p>
-            <p className="truncate text-xs text-slate-400">{user?.email || "Secure workspace"}</p>
-          </div>
-        </div>
-        <div className="premium-chip flex items-center justify-between rounded-2xl px-3 py-2 text-xs text-slate-300">
-          <span>Workspace status</span>
-          <span className="rounded-full bg-emerald-400/14 px-2 py-1 font-bold uppercase tracking-[0.22em] text-emerald-300">
-            Live
-          </span>
+      <div className="workspace-label">
+        <Wallet size={17} />
+        <div>
+          <strong>Personal workspace</strong>
+          <span>Your money, in one place</span>
         </div>
       </div>
-
-      <div className="dashboard-scroll relative flex-1 overflow-y-auto px-5 pb-5 pt-5">
-        <nav>
-          {navSections.map((section) => (
-            <div key={section.title}>
-              <NavGroup title={section.title} />
-              {section.items.map(({ to, label, icon: Icon, exact }) => (
+      <nav
+        className="sidebar-nav dashboard-scroll"
+        aria-label="Main navigation"
+      >
+        {sections.map((section) => (
+          <div key={section.title}>
+            <p className="nav-group">{section.title}</p>
+            {section.items.map(([path, label, icon]) => {
+              const Icon = icon
+              return (
                 <NavLink
-                  key={to}
-                  to={to}
-                  end={exact}
-                  className={linkClass}
+                  key={path}
+                  to={`/dashboard${path ? `/${path}` : ""}`}
+                  end={!path}
+                  className={({ isActive }) =>
+                    `nav-link${isActive ? " active" : ""}`
+                  }
                   onClick={mobile ? onClose : undefined}
                 >
-                  {({ isActive }) => (
-                    <>
-                      <span
-                        className={`flex h-10 w-10 items-center justify-center rounded-2xl border transition-all ${
-                          isActive
-                            ? "border-emerald-400/30 bg-emerald-400/14 text-emerald-300 shadow-[0_12px_32px_rgba(16,185,129,0.18)]"
-                            : "border-white/[0.06] bg-white/[0.045] text-slate-400 group-hover:border-white/[0.12] group-hover:text-white"
-                        }`}
-                      >
-                        <Icon size={17} />
-                      </span>
-                      <span className="flex-1">{label}</span>
-                      {isActive && (
-                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-300 shadow-[0_0_18px_rgba(110,231,183,0.7)]" />
-                      )}
-                    </>
-                  )}
+                  <Icon size={17} strokeWidth={1.7} />
+                  {label}
                 </NavLink>
-              ))}
+              )
+            })}
+          </div>
+        ))}
+      </nav>
+      <div className="sidebar-bottom">
+        <div className="sidebar-note">
+          <Sprout size={19} color="#6d865d" style={{ marginBottom: 8 }} />
+          <strong>Small steps. Lasting progress.</strong>
+          <p>A little planning today makes room for what matters tomorrow.</p>
+          <Link to="/dashboard/goals" onClick={onClose}>
+            Explore your goals <ArrowUpRight size={13} />
+          </Link>
+        </div>
+        <div className="profile">
+          <div className="avatar">
+            {(user?.name || "Member")
+              .split(" ")
+              .map((x) => x[0])
+              .slice(0, 2)
+              .join("")
+              .toUpperCase()}
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="profile-name">{user?.name || "Your account"}</div>
+            <div className="profile-email">
+              {user?.email || "Personal account"}
             </div>
-          ))}
-        </nav>
-      </div>
-
-      <div className="relative m-5 mt-0 rounded-[1.7rem] border border-white/[0.08] bg-gradient-to-br from-rose-500/10 to-transparent p-4">
-        <p className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">
-          Session
-        </p>
-        <p className="mt-2 text-sm leading-6 text-slate-300">
-          Your financial data is ready. Review the latest activity, then keep your budget streak moving.
-        </p>
-        <button
-          onClick={logout}
-          className="premium-button mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-400/18 bg-rose-500/12 px-4 py-3 text-sm font-semibold text-rose-200 hover:border-rose-300/35 hover:bg-rose-500/18"
-        >
-          <LogOut size={16} />
-          Sign Out
-        </button>
+          </div>
+          <button
+            onClick={logout}
+            className="icon-button"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
       </div>
     </aside>
   )
 }
-
-export default Sidebar

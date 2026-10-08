@@ -1,85 +1,96 @@
-import { AlertTriangle, Zap, TrendingUp } from "lucide-react"
-
-const BudgetHealthCard = ({ totalExpense = 0, budgetLimit = 0, avgDailyExpense = 0 }) => {
-  if (!budgetLimit) return null
-
-  const today = new Date()
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
-
-  const projectedExpense = avgDailyExpense * daysInMonth
-  const percentOfBudget = (totalExpense / budgetLimit) * 100
-  const isHealthy = projectedExpense <= budgetLimit
-
+import { Link } from "react-router-dom"
+import { ArrowUpRight, Target } from "lucide-react"
+import { formatCurrency } from "../../utils/finance"
+export default function BudgetHealthCard({
+  totalExpense = 0,
+  budgetLimit = 0,
+  avgDailyExpense = 0,
+}) {
+  const now = new Date()
+  const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const remaining = budgetLimit - totalExpense
+  const used = budgetLimit > 0 ? (totalExpense / budgetLimit) * 100 : 0
+  const over = remaining < 0
   return (
-    <section
-      className={`glass-panel surface-highlight relative overflow-hidden rounded-[2rem] p-6 sm:p-8 ${
-        isHealthy ? "border-emerald-400/16" : "border-rose-400/14"
-      }`}
-    >
-      <div
-        className={`absolute right-[-3rem] top-[-2rem] h-40 w-40 rounded-full blur-[90px] ${
-          isHealthy ? "bg-emerald-400/12" : "bg-rose-400/12"
-        }`}
-      />
-
-      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-start gap-4 sm:gap-5">
-          <div
-            className={`flex h-16 w-16 items-center justify-center rounded-[1.5rem] ${
-              isHealthy ? "bg-emerald-400/14 text-emerald-200" : "bg-rose-400/14 text-rose-200"
-            }`}
-          >
-            {isHealthy ? <Zap size={28} /> : <AlertTriangle size={28} />}
-          </div>
-
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-500">
-              Budget Health
-            </p>
-            <h3 className="mt-2 font-['Outfit'] text-2xl font-semibold text-white">
-              {isHealthy ? "Stable spending pace" : "Budget pressure detected"}
-            </h3>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-              {isHealthy
-                ? "Your projected monthly spend is landing within budget based on current daily behavior."
-                : "Current daily behavior suggests you may cross the monthly budget limit unless spending slows down."}
-            </p>
-          </div>
+    <section className="panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Monthly budget</h2>
+          <p>A plan for the month ahead</p>
         </div>
-
-        <div className="w-full max-w-md rounded-[1.7rem] border border-white/[0.08] bg-slate-950/30 p-5">
-          <div className="mb-3 flex items-center justify-between text-sm">
-            <span className="text-slate-400">Budget used</span>
-            <span className="font-semibold text-white">{Math.min(100, percentOfBudget).toFixed(1)}%</span>
+        <Link
+          to="/dashboard/budget"
+          className="text-link"
+          aria-label="Manage your budget"
+        >
+          <ArrowUpRight size={16} />
+        </Link>
+      </div>
+      {budgetLimit > 0 ? (
+        <div className="budget-content">
+          <div
+            className="budget-amount"
+            style={{ color: over ? "#a06346" : "var(--text)" }}
+          >
+            {formatCurrency(Math.abs(remaining))}
+            <span
+              style={{
+                fontSize: 11,
+                fontFamily: "DM Sans",
+                letterSpacing: 0,
+                fontWeight: 400,
+                color: "var(--muted)",
+                marginLeft: 8,
+              }}
+            >
+              {over ? "over budget" : "left to spend"}
+            </span>
           </div>
-          <div className="h-3 overflow-hidden rounded-full bg-white/[0.06]">
+          <div className="budget-meta">
+            <span>{formatCurrency(totalExpense)} spent</span>
+            <span>of {formatCurrency(budgetLimit)}</span>
+          </div>
+          <div
+            className="progress-track"
+            style={{ height: 7 }}
+            role="progressbar"
+            aria-label="Monthly budget used"
+            aria-valuenow={Math.round(Math.min(used, 100))}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
             <div
-              className={`h-full rounded-full transition-all duration-1000 ${
-                isHealthy
-                  ? "bg-gradient-to-r from-emerald-400 to-cyan-400"
-                  : "bg-gradient-to-r from-rose-400 to-amber-300"
-              }`}
-              style={{ width: `${Math.min(100, Math.max(percentOfBudget, 4))}%` }}
+              className="progress-fill"
+              style={{
+                width: `${Math.min(used, 100)}%`,
+                background: over ? "#b07b59" : "#8d9f73",
+              }}
             />
           </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.045] p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Spent so far</p>
-              <p className="mt-2 font-semibold text-white">₹{totalExpense.toLocaleString("en-IN")}</p>
-            </div>
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.045] p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Projected</p>
-              <p className={`mt-2 flex items-center gap-2 font-semibold ${isHealthy ? "text-emerald-200" : "text-rose-200"}`}>
-                {!isHealthy && <TrendingUp size={15} />}
-                ₹{projectedExpense.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-              </p>
-            </div>
+          <div className="budget-note">
+            {over
+              ? "You’re over your monthly limit. Review your categories to adjust your plan."
+              : avgDailyExpense * days > budgetLimit
+                ? "At your current pace, spending may exceed your budget this month."
+                : totalExpense === 0
+                  ? "Your budget is ready. New expenses will appear here."
+                  : "You’re on track. Your current spending pace is within your budget."}
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="empty-state" style={{ padding: 23 }}>
+          <Target size={25} />
+          <strong>Make room for what matters</strong>
+          <p>Set a monthly limit to keep spending in perspective.</p>
+          <Link
+            to="/dashboard/budget"
+            className="btn"
+            style={{ marginTop: 17 }}
+          >
+            Create a budget <ArrowUpRight size={13} />
+          </Link>
+        </div>
+      )}
     </section>
   )
 }
-
-export default BudgetHealthCard

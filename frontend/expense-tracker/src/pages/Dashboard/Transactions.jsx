@@ -1,262 +1,309 @@
 import { useEffect, useState } from "react"
-import axios from "axios"
-import { Search, Trash2, Download, Upload, Users } from "lucide-react"
+import {
+  Search,
+  Trash2,
+  Download,
+  Upload,
+  Users,
+  ArrowLeft,
+  ArrowRight,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Receipt,
+  RefreshCw,
+} from "lucide-react"
 import ImportModal from "../../components/dashboard/ImportModal"
 import SplitModal from "../../components/dashboard/SplitModal"
 import { BASE_URL } from "../../utils/apiPaths"
 
-const Transactions = () => {
+export default function Transactions() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
-  const [selectedSplitTx, setSelectedSplitTx] = useState(null)
-
-  const fetchTransactions = async () => {
-    try {
-      setLoading(true)
-      const token = localStorage.getItem("token")
-
-      const res = await axios.get(
-        `${BASE_URL}/api/transactions?page=${page}&search=${search}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      )
-
-      setTransactions(res.data.transactions)
-      setTotalPages(res.data.totalPages)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  const [total, setTotal] = useState(0)
+  const [error, setError] = useState("")
+  const [importOpen, setImportOpen] = useState(false)
+  const [splitTransaction, setSplitTransaction] = useState(null)
+  const [revision, setRevision] = useState(0)
+  const refresh = () => setRevision((value) => value + 1)
   useEffect(() => {
-    fetchTransactions()
-  }, [page, search])
-
-  const deleteTransaction = async (id) => {
-    try {
-      const token = localStorage.getItem("token")
-
-      await axios.delete(
-        `${BASE_URL}/api/transactions/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+    const refresh = () => setRevision((value) => value + 1)
+    window.addEventListener("transactions-updated", refresh)
+    return () => window.removeEventListener("transactions-updated", refresh)
+  }, [])
+  useEffect(() => {
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      setLoading(true)
+      setError("")
+      try {
+        const params = new URLSearchParams({ page: String(page), search })
+        const response = await fetch(`${BASE_URL}/api/transactions?${params}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          signal: controller.signal,
+        })
+        if (!response.ok)
+          throw new Error(
+            "We couldn’t load your transactions. Please try again.",
+          )
+        const data = await response.json()
+        setTransactions(data.transactions || [])
+        setTotalPages(Math.max(1, data.totalPages || 1))
+        setTotal(data.total ?? data.transactions.length)
+        if (page > Math.max(1, data.totalPages || 1))
+          setPage(Math.max(1, data.totalPages || 1))
+      } catch (err) {
+        if (err.name !== "AbortError") setError(err.message)
+      } finally {
+        if (!controller.signal.aborted) setLoading(false)
+      }
+    }, 200)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [page, search, revision])
+  const remove = async (tx) => {
+    if (
+      !window.confirm(
+        `Delete “${tx.title}”? This transaction will be permanently removed.`,
       )
-
-      fetchTransactions()
+    )
+      return
+    try {
+      const response = await fetch(`${BASE_URL}/api/transactions/${tx._id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
+      if (!response.ok)
+        throw new Error("Could not delete this transaction. Please try again.")
+      refresh()
     } catch (err) {
-      console.error(err)
+      setError(err.message)
     }
   }
-
-  // ✅ EXPORT CSV
-  const handleExportCSV = () => {
-    if (transactions.length === 0) return
-
-    // Define headers
-    const headers = ["Date", "Category", "Title", "Type", "Amount"]
-    
-    // Format rows
-    const rows = transactions.map(tx => [
-      new Date(tx.date).toLocaleDateString(),
-      `"${tx.category}"`, // Quote to handle commas
-      `"${tx.title}"`,
-      tx.type,
-      tx.amount
-    ].join(","))
-
-    // Combine
-    const csvContent = [headers.join(","), ...rows].join("\n")
-    
-    // Create Blob and trigger download
-    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
+  const exportPage = () => {
+    const escape = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`
+    const rows = [
+      ["Date", "Category", "Title", "Type", "Amount"],
+      ...transactions.map((tx) => [
+        new Date(tx.date).toLocaleDateString("en-IN"),
+        tx.category,
+        tx.title,
+        tx.type,
+        tx.amount,
+      ]),
+    ]
+    const blob = new Blob(
+      ["\ufeff" + rows.map((row) => row.map(escape).join(",")).join("\n")],
+      { type: "text/csv;charset=utf-8;" },
+    )
+    const url = URL.createObjectURL(blob),
+      link = document.createElement("a")
     link.href = url
-    link.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `transactions-page-${page}.csv`
     link.click()
     URL.revokeObjectURL(url)
   }
-
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-
-      {/* HEADER */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold text-white">
-          Transactions
-        </h2>
-
-        <div className="flex items-center gap-4">
-          {/* Import Button */}
-          <button
-            onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 transition-all font-medium text-sm"
-          >
-            <Upload size={16} />
+    <section className="panel">
+      <div className="transaction-toolbar">
+        <div className="transaction-search">
+          <Search size={16} />
+          <input
+            aria-label="Search transactions"
+            placeholder="Search transactions…"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value)
+              setPage(1)
+            }}
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn" onClick={() => setImportOpen(true)}>
+            <Upload size={14} />
             Import CSV
           </button>
-
-          {/* Export Button */}
           <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all font-medium text-sm"
+            className="btn"
+            onClick={exportPage}
+            disabled={!transactions.length || loading}
           >
-            <Download size={16} />
-            Export CSV
+            <Download size={14} />
+            Export this page
           </button>
-
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search transactions..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="
-                pl-9 pr-4 py-2 w-72 rounded-xl
-                bg-white/5
-                border border-white/10
-                text-white
-                focus:outline-none focus:border-emerald-500/50
-                transition-all
-              "
-            />
-          </div>
         </div>
       </div>
-
-      {/* CONTENT */}
-      {loading ? (
-        <div className="text-gray-400">Loading transactions...</div>
-      ) : (
-        <div className="rounded-2xl bg-white/5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-md">
-
-          {/* Table Header */}
-          <div className="grid grid-cols-6 px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-white/5">
-            <div>Date</div>
-            <div>Category</div>
-            <div>Title</div>
-            <div>Type</div>
-            <div className="text-right">Amount</div>
-            <div className="text-right">Action</div>
-          </div>
-
-          {/* Rows */}
-          <div className="divide-y divide-white/5">
-            {transactions.map((tx) => (
-              <div
-                key={tx._id}
-                className="
-                  grid grid-cols-6 items-center
-                  px-6 py-4
-                  hover:bg-white/5
-                  transition-all
-                "
-              >
-                <div className="text-gray-300 text-sm">
-                  {new Date(tx.date).toLocaleDateString()}
-                </div>
-
-                <div className="text-gray-300 text-sm italic">
-                  {tx.category}
-                </div>
-
-                <div className="text-white font-medium">
-                  {tx.title}
-                </div>
-
-                <div>
-                  <span
-                    className={`
-                      px-3 py-1 text-[10px] font-black uppercase tracking-tighter rounded-lg
-                      ${
-                        tx.type === "income"
-                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                          : "bg-red-500/10 text-red-400 border border-red-500/20"
-                      }
-                    `}
-                  >
-                    {tx.type}
-                  </span>
-                </div>
-
-                <div
-                  className={`text-right font-bold ${
-                    tx.type === "income"
-                      ? "text-emerald-400"
-                      : "text-red-400"
-                  }`}
-                >
-                  ₹ {Math.abs(tx.amount).toLocaleString()}
-                </div>
-
-                <div className="text-right flex items-center justify-end gap-1">
-                  {tx.type === "expense" && (
-                    <button
-                      onClick={() => setSelectedSplitTx(tx)}
-                      className={`p-2 rounded-lg transition-all active:scale-95 ${tx.splitDetails?.length > 0 ? 'bg-indigo-500/20 text-indigo-400' : 'hover:bg-indigo-500/10 text-gray-500 hover:text-indigo-400'}`}
-                      title="Split Expense"
-                    >
-                      <Users size={16} />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => deleteTransaction(tx._id)}
-                    className="p-2 rounded-lg hover:bg-rose-500/10 text-gray-500 hover:text-rose-400 transition-all active:scale-95"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Pagination */}
-          <div className="flex justify-between items-center px-6 py-4 border-t border-white/5 text-sm text-gray-400">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-              className="px-6 py-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 disabled:opacity-40 transition-all font-bold text-xs uppercase"
-            >
-              Prev
-            </button>
-
-            <span className="font-medium tracking-wide">
-              Page <span className="text-emerald-400">{page}</span> of <span className="text-white">{totalPages}</span>
-            </span>
-
-            <button
-              disabled={page === totalPages}
-              onClick={() => setPage(page + 1)}
-              className="px-6 py-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 disabled:opacity-40 transition-all font-bold text-xs uppercase"
-            >
-              Next
-            </button>
-          </div>
+      {error && (
+        <div
+          className="form-error"
+          role="alert"
+          style={{ margin: "0 20px 16px" }}
+        >
+          {error}
+          <button
+            className="text-link"
+            style={{ marginLeft: 12 }}
+            onClick={refresh}
+          >
+            <RefreshCw size={12} />
+            Retry
+          </button>
         </div>
       )}
-      <ImportModal 
-        isOpen={isImportModalOpen} 
-        onClose={() => setIsImportModalOpen(false)} 
-        onRefresh={fetchTransactions}
+      {loading ? (
+        <div className="empty-state" role="status">
+          Loading transactions…
+        </div>
+      ) : transactions.length ? (
+        <div className="table-scroll">
+          <table className="activity-table">
+            <thead>
+              <tr>
+                <th>Transaction</th>
+                <th className="optional-column">Category</th>
+                <th className="optional-column">Date</th>
+                <th className="amount">Amount</th>
+                <th>
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.map((tx) => (
+                <tr key={tx._id}>
+                  <td>
+                    <span className="transaction-name">
+                      <span className="transaction-icon">
+                        {tx.type === "income" ? (
+                          <ArrowDownLeft size={15} />
+                        ) : (
+                          <ArrowUpRight size={15} />
+                        )}
+                      </span>
+                      <span>
+                        {tx.title || "Untitled transaction"}
+                        <small className="transaction-subtitle">
+                          {tx.category} ·{" "}
+                          {new Date(tx.date).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </small>
+                      </span>
+                    </span>
+                  </td>
+                  <td className="optional-column">
+                    <span className="category-pill">
+                      {tx.category || "Other"}
+                    </span>
+                  </td>
+                  <td
+                    className="optional-column"
+                    style={{ color: "var(--muted)" }}
+                  >
+                    {new Date(tx.date).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </td>
+                  <td
+                    className={`amount ${tx.type === "income" ? "income-text" : ""}`}
+                  >
+                    {tx.type === "income" ? "+" : "−"}₹
+                    {Math.abs(tx.amount).toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </td>
+                  <td>
+                    <div className="flex justify-end">
+                      {tx.type === "expense" && (
+                        <button
+                          className="icon-button"
+                          onClick={() => setSplitTransaction(tx)}
+                          aria-label={`Split ${tx.title}`}
+                          title="Split expense"
+                        >
+                          <Users size={14} />
+                        </button>
+                      )}
+                      <button
+                        className="icon-button"
+                        onClick={() => remove(tx)}
+                        aria-label={`Delete ${tx.title}`}
+                        title="Delete transaction"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="empty-state">
+          <Receipt size={28} />
+          <strong>
+            {search ? "No matching transactions" : "No transactions yet"}
+          </strong>
+          <p>
+            {search
+              ? "Try a different description or clear your search."
+              : "Add your first income or expense to get started."}
+          </p>
+          {search && (
+            <button
+              className="text-link"
+              style={{ marginTop: 12 }}
+              onClick={() => setSearch("")}
+            >
+              Clear search
+            </button>
+          )}
+        </div>
+      )}
+      <div className="table-footer">
+        <span>
+          {total} {search ? "matching " : ""}transactions · Page {page} of{" "}
+          {totalPages}
+        </span>
+        <div className="flex gap-1">
+          <button
+            className="icon-button"
+            aria-label="Previous page"
+            disabled={page <= 1 || loading}
+            onClick={() => setPage(page - 1)}
+          >
+            <ArrowLeft size={15} />
+          </button>
+          <button
+            className="icon-button"
+            aria-label="Next page"
+            disabled={page >= totalPages || loading}
+            onClick={() => setPage(page + 1)}
+          >
+            <ArrowRight size={15} />
+          </button>
+        </div>
+      </div>
+      <ImportModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        onRefresh={refresh}
       />
-      <SplitModal 
-        isOpen={!!selectedSplitTx} 
-        onClose={() => setSelectedSplitTx(null)} 
-        transaction={selectedSplitTx}
-        onRefresh={fetchTransactions}
+      <SplitModal
+        isOpen={Boolean(splitTransaction)}
+        onClose={() => setSplitTransaction(null)}
+        transaction={splitTransaction}
+        onRefresh={refresh}
       />
-    </div>
+    </section>
   )
 }
-
-export default Transactions

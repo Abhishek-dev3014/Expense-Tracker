@@ -1,5 +1,6 @@
 import { Outlet, Navigate, useLocation } from "react-router-dom"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
+import { Plus, ArrowDownLeft } from "lucide-react"
 import Sidebar from "../../components/dashboard/Sidebar"
 import Topbar from "../../components/dashboard/Topbar"
 import AddIncomeModal from "../../components/dashboard/AddIncomeModal"
@@ -9,277 +10,224 @@ import { BASE_URL } from "../../utils/apiPaths"
 import { useAuth } from "../../context/AuthContext"
 import axios from "axios"
 
-const pageCopy = {
-  "/dashboard": {
-    title: "Financial Command Center",
-    subtitle: "Track momentum, protect your runway, and move money with confidence.",
-  },
-  "/dashboard/transactions": {
-    title: "Transaction Activity",
-    subtitle: "Search, manage, and export every money movement across your account.",
-  },
-  "/dashboard/analytics": {
-    title: "Analytics Intelligence",
-    subtitle: "Read the patterns behind income, spend velocity, and savings performance.",
-  },
-  "/dashboard/budget": {
-    title: "Budget Control",
-    subtitle: "Monitor limits, reduce leakages, and stay ahead of monthly risk.",
-  },
-  "/dashboard/insights": {
-    title: "AI Finance Insights",
-    subtitle: "Convert your data into personalized guidance and next-best actions.",
-  },
-  "/dashboard/reports": {
-    title: "Reports Studio",
-    subtitle: "Generate polished summaries for audits, reviews, and planning sessions.",
-  },
-  "/dashboard/recurring": {
-    title: "Recurring Payments",
-    subtitle: "Automate subscriptions, bills, and repeat income without the manual work.",
-  },
-  "/dashboard/goals": {
-    title: "Goals Progress",
-    subtitle: "Turn long-term savings plans into trackable milestones and weekly wins.",
-  },
-  "/dashboard/achievements": {
-    title: "Achievements",
-    subtitle: "Celebrate streaks, habits, and financial discipline that compound over time.",
-  },
-  "/dashboard/debts": {
-    title: "Shared Expenses",
-    subtitle: "Coordinate balances, split costs, and keep everyone aligned.",
-  },
+const pages = {
+  "": ["Overview", "A little clarity for your everyday finances."],
+  transactions: [
+    "Transactions",
+    "Every income and expense, neatly in one place.",
+  ],
+  analytics: [
+    "Analytics",
+    "Understand where your money goes and how your habits change.",
+  ],
+  budget: ["Budgets", "Give your spending a plan and keep the month on track."],
+  insights: [
+    "Insights",
+    "A closer look at your spending habits and opportunities to save.",
+  ],
+  reports: ["Reports", "Review and export a clear picture of your finances."],
+  recurring: [
+    "Recurring payments",
+    "Stay on top of subscriptions, bills, and regular income.",
+  ],
+  goals: [
+    "Savings goals",
+    "Make steady progress toward the things that matter.",
+  ],
+  achievements: [
+    "Achievements",
+    "The good habits you are building, one day at a time.",
+  ],
+  debts: ["Shared expenses", "Keep shared costs and balances easy to follow."],
 }
-
-const getPageMeta = (pathname) => {
-  if (pageCopy[pathname]) return pageCopy[pathname]
-  return {
-    title: "Expense Tracker",
-    subtitle: "A refined workspace for managing money across every part of your month.",
-  }
-}
-
-const DashboardLayout = () => {
+export default function DashboardLayout() {
   const [showIncome, setShowIncome] = useState(false)
   const [showExpense, setShowExpense] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [contentRevision, setContentRevision] = useState(0)
   const { token, user, completeTutorial } = useAuth()
   const location = useLocation()
-
+  const mobileNav = useRef(null)
   const authToken = token || localStorage.getItem("token")
-  const isDashboardHome =
-    location.pathname === "/dashboard" || location.pathname === "/dashboard/"
-  const { title, subtitle } = getPageMeta(location.pathname)
+  const section = location.pathname.split("/")[2] || ""
+  const [title, subtitle] = pages[section] || pages[""]
 
   useEffect(() => {
-    setSidebarOpen(false)
-  }, [location.pathname])
+    const refresh = () => setContentRevision((value) => value + 1)
+    window.addEventListener("transactions-updated", refresh)
+    return () => window.removeEventListener("transactions-updated", refresh)
+  }, [])
 
   useEffect(() => {
-    const processRecurring = async () => {
-      if (!authToken) return
-      try {
-        await axios.post(
-          `${BASE_URL}/api/recurring/process`,
-          {},
-          {
-            headers: { Authorization: `Bearer ${authToken}` },
-          }
-        )
-      } catch (err) {
-        console.error("Auto-process error:", err)
+    if (!sidebarOpen) return
+    const previousFocus = document.activeElement
+    const focusable = () => [
+      ...mobileNav.current.querySelectorAll("button, a[href]"),
+    ]
+    focusable()[0]?.focus()
+    const keydown = (event) => {
+      if (event.key === "Escape") setSidebarOpen(false)
+      if (event.key === "Tab") {
+        const items = focusable()
+        const first = items[0],
+          last = items[items.length - 1]
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault()
+          last.focus()
+        }
+        if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault()
+          first.focus()
+        }
       }
     }
-
-    processRecurring()
-  }, [authToken])
+    const oldOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    document.addEventListener("keydown", keydown)
+    return () => {
+      document.removeEventListener("keydown", keydown)
+      document.body.style.overflow = oldOverflow
+      previousFocus?.focus()
+    }
+  }, [sidebarOpen])
 
   useEffect(() => {
-    const syncGamification = async () => {
-      if (!authToken) return
+    if (!authToken) return
+    const headers = { Authorization: `Bearer ${authToken}` }
+    const sync = async () => {
+      try {
+        await axios.post(`${BASE_URL}/api/recurring/process`, {}, { headers })
+      } catch (err) {
+        console.error("Recurring payments:", err)
+      } finally {
+        window.dispatchEvent(new Event("transactions-updated"))
+      }
       try {
         await axios.post(
           `${BASE_URL}/api/gamification/check-streak`,
           {},
-          {
-            headers: { Authorization: `Bearer ${authToken}` },
-          }
+          { headers },
         )
         await axios.post(
           `${BASE_URL}/api/gamification/sync-badges`,
           {},
-          {
-            headers: { Authorization: `Bearer ${authToken}` },
-          }
+          { headers },
         )
       } catch (err) {
-        console.error("Gamification sync error:", err)
+        console.error("Progress sync:", err)
       }
     }
-
-    syncGamification()
+    sync()
   }, [authToken])
 
-  if (!authToken) {
-    return <Navigate to="/login" replace />
+  if (!authToken) return <Navigate to="/login" replace />
+  const saveTransaction = async (type, data) => {
+    const response = await fetch(`${BASE_URL}/api/${type}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok)
+      throw new Error(`Could not save your ${type}. Please try again.`)
+    setShowIncome(false)
+    setShowExpense(false)
+    window.dispatchEvent(new Event("transactions-updated"))
   }
-
-  const handleAddIncome = async (incomeData) => {
-    try {
-      const res = await fetch(`${BASE_URL}/api/income`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify(incomeData),
-      })
-
-      if (!res.ok) throw new Error("Failed to add income")
-
-      setShowIncome(false)
-      window.location.reload()
-    } catch (err) {
-      console.error("Add income error:", err)
-    }
-  }
-
-  const handleAddExpense = async (expenseData) => {
-    try {
-      const res = await fetch(`${BASE_URL}/api/expense`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify(expenseData),
-      })
-
-      if (!res.ok) throw new Error("Failed to add expense")
-
-      setShowExpense(false)
-      window.location.reload()
-    } catch (err) {
-      console.error("Add expense error:", err)
-    }
-  }
-
   return (
-    <div className="dashboard-root app-shell-grid relative min-h-screen overflow-hidden bg-[var(--bg)] text-white">
-      <style>{`
-        @media print {
-          .dashboard-root {
-            height: auto !important;
-            overflow: visible !important;
-            display: block !important;
-            background: white !important;
-          }
-
-          .sidebar-container, .topbar-container, .no-print {
-            display: none !important;
-          }
-
-          .main-content {
-            padding: 0 !important;
-            margin: 0 !important;
-            height: auto !important;
-            overflow: visible !important;
-            display: block !important;
-            background: white !important;
-          }
-
-          .main-scroller {
-            overflow: visible !important;
-            height: auto !important;
-            padding: 0 !important;
-            display: block !important;
-          }
-
-          .grid, [class*="grid-cols-"], [class*="lg:col-span-"] {
-            display: block !important;
-            width: 100% !important;
-            grid-template-columns: none !important;
-            gap: 20px !important;
-          }
-
-          body, html {
-            height: auto !important;
-            overflow: visible !important;
-            background: white !important;
-            color: black !important;
-          }
-        }
-      `}</style>
-
-      <div className="pointer-events-none absolute inset-0">
-        <div className="float-orbit absolute -left-28 top-0 h-80 w-80 rounded-full bg-emerald-500/14 blur-[120px]" />
-        <div className="float-orbit-delayed absolute right-[-7rem] top-24 h-96 w-96 rounded-full bg-indigo-500/16 blur-[140px]" />
-        <div className="float-orbit absolute bottom-[-8rem] left-1/3 h-72 w-72 rounded-full bg-cyan-500/10 blur-[120px]" />
+    <div className="dashboard-root">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:bg-white focus:p-4"
+      >
+        Skip to content
+      </a>
+      <div className="sidebar-container sidebar-desktop">
+        <Sidebar />
       </div>
-
-      <div className="relative flex min-h-screen">
-        <div className="sidebar-container no-print hidden xl:block xl:px-5 xl:py-5">
-          <Sidebar />
-        </div>
-
-        {sidebarOpen && (
+      {sidebarOpen && (
+        <>
           <button
-            aria-label="Close sidebar"
-            className="no-print fixed inset-0 z-30 bg-slate-950/60 backdrop-blur-sm xl:hidden"
+            className="sidebar-overlay"
+            aria-label="Close navigation"
             onClick={() => setSidebarOpen(false)}
           />
-        )}
-
-        <div
-          className={`sidebar-container no-print fixed inset-y-0 left-0 z-40 w-[19rem] max-w-[86vw] px-4 py-4 transition-transform duration-300 xl:hidden ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          <Sidebar mobile onClose={() => setSidebarOpen(false)} />
-        </div>
-
-        <div className="main-content relative flex min-h-screen flex-1 flex-col overflow-hidden px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4 xl:pl-0">
-          <div className="glass-panel-strong surface-highlight relative flex min-h-[calc(100vh-1.5rem)] flex-1 flex-col overflow-hidden rounded-[2rem] border border-white/10 sm:rounded-[2.25rem]">
-            <div className="topbar-container no-print">
-              <Topbar
-                title={title}
-                subtitle={subtitle}
-                isDashboardHome={isDashboardHome}
-                onAddIncome={() => setShowIncome(true)}
-                onAddExpense={() => setShowExpense(true)}
-                onOpenSidebar={() => setSidebarOpen(true)}
-              />
-            </div>
-
-            <main className="main-scroller dashboard-scroll flex-1 overflow-y-auto px-4 pb-6 pt-4 sm:px-6 sm:pb-8 lg:px-8 lg:pt-5 xl:px-10 xl:pb-10">
-              <div key={location.pathname} className="page-enter">
-                <Outlet />
-              </div>
-            </main>
+          <div
+            ref={mobileNav}
+            className="sidebar-container sidebar-mobile"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation"
+          >
+            <Sidebar mobile onClose={() => setSidebarOpen(false)} />
           </div>
-        </div>
+        </>
+      )}
+      <div className="main-content" inert={sidebarOpen ? true : undefined}>
+        <Topbar title={title} onOpenSidebar={() => setSidebarOpen(true)} />
+        <main className="main-scroller" id="main-content">
+          <div className="page-header">
+            <div>
+              {!section && (
+                <div className="eyebrow">Your financial picture</div>
+              )}
+              <h1>
+                {!section
+                  ? `Welcome back${user?.name ? `, ${user.name.split(" ")[0]}` : ""}`
+                  : title}
+                {!section && <span style={{ color: "#8f9e7f" }}>.</span>}
+              </h1>
+              <p>{subtitle}</p>
+            </div>
+            <div className="page-actions">
+              <button onClick={() => setShowIncome(true)} className="btn">
+                <ArrowDownLeft size={15} />
+                Add income
+              </button>
+              <button
+                onClick={() => setShowExpense(true)}
+                className="btn btn-primary"
+              >
+                <Plus size={15} />
+                Add expense
+              </button>
+            </div>
+          </div>
+          <div
+            key={`${location.pathname}:${section && section !== "transactions" ? contentRevision : ""}`}
+            className="page-enter"
+          >
+            <Suspense
+              fallback={
+                <div className="empty-state" role="status">
+                  Loading your workspace…
+                </div>
+              }
+            >
+              <Outlet />
+            </Suspense>
+          </div>
+        </main>
       </div>
-
       {showIncome && (
         <AddIncomeModal
           onClose={() => setShowIncome(false)}
-          onSubmit={handleAddIncome}
+          onSubmit={(data) => saveTransaction("income", data)}
         />
       )}
-
       {showExpense && (
         <AddExpenseModal
           onClose={() => setShowExpense(false)}
-          onSubmit={handleAddExpense}
+          onSubmit={(data) => saveTransaction("expense", data)}
         />
       )}
-
-      {user && !user.hasSeenTutorial && !localStorage.getItem(`tutorial_seen_${user._id}`) && (
-        <TutorialOverlay onComplete={completeTutorial} />
-      )}
+      {user &&
+        !user.hasSeenTutorial &&
+        !localStorage.getItem(`tutorial_seen_${user._id}`) && (
+          <TutorialOverlay onComplete={completeTutorial} />
+        )}
     </div>
   )
 }
-
-export default DashboardLayout

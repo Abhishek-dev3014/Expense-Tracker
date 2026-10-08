@@ -1,44 +1,35 @@
-import { Wallet, TrendingUp, TrendingDown, PiggyBank } from "lucide-react"
+import { Wallet, ArrowDownLeft, ArrowUpRight, Sprout } from "lucide-react"
 import StatCard from "./StatCard"
-
-const StatsGrid = ({ data }) => {
+export default function StatsGrid({ data }) {
   if (!data) return null
-
-  const { totalBalance = 0, totalIncome = 0, totalExpense = 0 } = data
-
+  const { totalBalance = 0, monthlyIncome = 0, monthlyExpense = 0 } = data
   return (
-    <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+    <section className="stats-grid" aria-label="Financial summary">
       <StatCard
-        title="Total Balance"
+        title="Total balance"
         value={totalBalance}
         highlight
-        subtitle="Current available position"
-        icon={<Wallet className="text-emerald-200" />}
+        subtitle="Across all your transactions"
+        icon={<Wallet />}
       />
-
       <StatCard
-        title="Monthly Income"
-        value={totalIncome}
-        subtitle="All credited inflows"
-        icon={<TrendingUp className="text-cyan-200" />}
+        title="Income"
+        value={monthlyIncome}
+        subtitle="Received this month"
+        icon={<ArrowDownLeft />}
       />
-
       <StatCard
-        title="Monthly Expenses"
-        value={totalExpense}
-        subtitle="All debited outflows"
-        negative
-        icon={<TrendingDown className="text-rose-200" />}
+        title="Expenses"
+        value={monthlyExpense}
+        subtitle="Spent this month"
+        icon={<ArrowUpRight />}
       />
-
       <StatCard
-        title="Savings"
-        value={totalIncome - totalExpense}
-        subtitle="Net retained this month"
-        icon={<PiggyBank className="text-indigo-200" />}
+        title="Net savings"
+        value={monthlyIncome - monthlyExpense}
+        subtitle="Income minus expenses this month"
+        icon={<Sprout />}
       />
     </section>
   )
 }
-
-export default StatsGrid

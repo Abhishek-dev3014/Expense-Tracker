@@ -22,7 +22,9 @@ export const AuthProvider = ({ children }) => {
       } catch (err) {
         console.error("Fetch user error:", err)
         if (err.response?.status === 401) {
-          logout()
+          localStorage.removeItem("token")
+          setToken(null)
+          setUser(null)
         }
       }
     }
@@ -42,7 +44,7 @@ export const AuthProvider = ({ children }) => {
 
   const completeTutorial = async () => {
     if (!token || !user) return
-    
+
     // Optimistic and Local Storage update
     localStorage.setItem(`tutorial_seen_${user._id}`, "true")
     const prevUser = user
@@ -67,6 +69,8 @@ export const AuthProvider = ({ children }) => {
   )
 }
 
+// Auth state and its consumer hook intentionally share this module.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext)
   if (!context) {
