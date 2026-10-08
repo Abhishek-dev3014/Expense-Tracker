@@ -1,6 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { buildOverview } from "../src/utils/finance.js"
+import { buildOverview, expensePage } from "../src/utils/finance.js"
 
 const now = new Date(2026, 0, 15)
 const tx = (date, amount, type, category = "Food") => ({
@@ -8,6 +8,31 @@ const tx = (date, amount, type, category = "Food") => ({
   amount,
   type,
   category,
+})
+
+test("expense pages filter income before pagination and preserve transaction order", () => {
+  const transactions = Array.from({ length: 14 }, (_, index) => ({
+    _id: index,
+    amount: 100,
+    type: index % 2 ? "expense" : "income",
+  }))
+  const first = expensePage(transactions)
+  assert.deepEqual(
+    first.transactions.map((tx) => tx._id),
+    [1, 3, 5, 7, 9],
+  )
+  assert.equal(first.totalPages, 2)
+  assert.deepEqual(
+    expensePage(transactions, 2).transactions.map((tx) => tx._id),
+    [11, 13],
+  )
+  assert.equal(transactions.length, 14)
+})
+
+test("expense pagination clamps stale pages and handles no recorded expenses", () => {
+  const data = expensePage([{ amount: 200, type: "income" }], 5)
+  assert.deepEqual(data, { transactions: [], totalPages: 1, currentPage: 1 })
+  assert.equal(expensePage([{ amount: -100 }], 3).currentPage, 1)
 })
 
 test("monthly figures exclude other months and the same month in previous years", () => {

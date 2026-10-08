@@ -23,23 +23,33 @@ export default function TransactionsTable({
   totalPages = 1,
   onNext,
   onPrev,
+  expensesOnly = false,
 }) {
   return (
     <section className="panel">
       <div className="panel-heading" style={{ paddingBottom: 19 }}>
         <div>
-          <h2>Recent transactions</h2>
-          <p>Your latest money movements</p>
+          <h2>{expensesOnly ? "Recent expenses" : "Recent transactions"}</h2>
+          <p>
+            {expensesOnly
+              ? "Your latest spending"
+              : "Your latest money movements"}
+          </p>
         </div>
         <Link className="text-link" to="/dashboard/transactions">
-          View all <ArrowUpRight size={14} />
+          {expensesOnly ? "All transactions" : "View all"}{" "}
+          <ArrowUpRight size={14} />
         </Link>
       </div>
       {transactions.length === 0 ? (
         <div className="empty-state">
           <Receipt size={27} />
           <strong>A fresh start for your finances</strong>
-          <p>Add an income or expense to see your activity here.</p>
+          <p>
+            {expensesOnly
+              ? "Add your first expense to see your spending here."
+              : "Add an income or expense to see your activity here."}
+          </p>
         </div>
       ) : (
         <div className="table-scroll">
@@ -109,7 +119,7 @@ export default function TransactionsTable({
       <div className="table-footer">
         <span>
           {transactions.length
-            ? `${transactions.length} transactions · Page ${page} of ${Math.max(1, totalPages)}`
+            ? `${transactions.length} ${expensesOnly ? "expenses" : "transactions"} · Page ${page} of ${Math.max(1, totalPages)}`
             : "Your activity will appear here"}
         </span>
         <div className="flex gap-1">

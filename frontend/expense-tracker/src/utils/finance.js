@@ -7,6 +7,20 @@ export const formatCurrency = (value) =>
 export const isIncome = (tx) =>
   tx.type ? tx.type === "income" : Number(tx.amount) > 0
 
+export function expensePage(transactions = [], page = 1, pageSize = 5) {
+  const expenses = transactions.filter((tx) => !isIncome(tx))
+  const totalPages = Math.max(1, Math.ceil(expenses.length / pageSize))
+  const currentPage = Math.min(Math.max(1, page), totalPages)
+  return {
+    transactions: expenses.slice(
+      (currentPage - 1) * pageSize,
+      currentPage * pageSize,
+    ),
+    totalPages,
+    currentPage,
+  }
+}
+
 export function buildOverview(data, now = new Date()) {
   const transactions = data.allTransactions || []
   const months = Array.from({ length: 6 }, (_, index) => {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useOutletContext } from "react-router-dom"
 import {
   ArrowUpRight,
   CalendarDays,
@@ -18,7 +18,7 @@ import {
 } from "recharts"
 import { useAuth } from "../../context/AuthContext"
 import { BASE_URL } from "../../utils/apiPaths"
-import { buildOverview, formatCurrency } from "../../utils/finance"
+import { buildOverview, expensePage, formatCurrency } from "../../utils/finance"
 import StatsGrid from "../../components/dashboard/StatsGrid"
 import TransactionsTable from "../../components/dashboard/TransactionsTable"
 import UpcomingBills from "../../components/dashboard/UpcomingBills"
@@ -41,6 +41,7 @@ const ChartTooltip = ({ active, payload, label }) =>
   ) : null
 
 export default function Home() {
+  const { expensesOnly = false } = useOutletContext() || {}
   const { token } = useAuth()
   const authToken = token || localStorage.getItem("token")
   const [data, setData] = useState(null)
@@ -48,6 +49,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [revision, setRevision] = useState(0)
+  const requestPage = expensesOnly ? 1 : page
   useEffect(() => {
     const refresh = () => setRevision((value) => value + 1)
     window.addEventListener("transactions-updated", refresh)
@@ -59,10 +61,13 @@ export default function Home() {
       setLoading(true)
       setError("")
       try {
-        const response = await fetch(`${BASE_URL}/api/dashboard?page=${page}`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-          signal: controller.signal,
-        })
+        const response = await fetch(
+          `${BASE_URL}/api/dashboard?page=${requestPage}`,
+          {
+            headers: { Authorization: `Bearer ${authToken}` },
+            signal: controller.signal,
+          },
+        )
         if (!response.ok)
           throw new Error(
             "We couldn’t load your overview. Please check your connection and try again.",
@@ -76,7 +81,7 @@ export default function Home() {
     }
     load()
     return () => controller.abort()
-  }, [page, authToken, revision])
+  }, [requestPage, authToken, revision])
   if (error)
     return (
       <div className="panel empty-state" role="alert">
@@ -96,8 +101,10 @@ export default function Home() {
   if (!data)
     return (
       <div className="space-y-5" aria-label="Loading overview" role="status">
-        <div className="stats-grid">
-          {[1, 2, 3, 4].map((x) => (
+        <div
+          className={`stats-grid${expensesOnly ? " stats-grid-expenses" : ""}`}
+        >
+          {(expensesOnly ? [1, 2, 3] : [1, 2, 3, 4]).map((x) => (
             <div key={x} className="panel h-36 animate-pulse bg-stone-100" />
           ))}
         </div>
@@ -110,7 +117,16 @@ export default function Home() {
     )
   const { monthlyIncome, monthlyExpense, months, categories } = data
   const net = monthlyIncome - monthlyExpense
-  const hasChartData = months.some((month) => month.income || month.expense)
+  const hasChartData = months.some(
+    (month) => month.expense || (!expensesOnly && month.income),
+  )
+  const activity = expensesOnly
+    ? expensePage(data.allTransactions, page)
+    : {
+        transactions: data.transactions || [],
+        currentPage: page,
+        totalPages: data.totalPages || 1,
+      }
   return (
     <div className="space-y-5" aria-busy={loading}>
       <div className="flex items-center justify-between gap-3">
@@ -128,19 +144,29 @@ export default function Home() {
           })}
         </span>
       </div>
-      <StatsGrid data={data} />
+      <StatsGrid data={data} expensesOnly={expensesOnly} />
       <div className="overview-grid">
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <h2>Money in, money out</h2>
-              <p>Your cash flow over the last 6 months</p>
+              <h2>
+                {expensesOnly
+                  ? "Your spending over time"
+                  : "Money in, money out"}
+              </h2>
+              <p>
+                {expensesOnly
+                  ? "Monthly expenses over the last 6 months"
+                  : "Your cash flow over the last 6 months"}
+              </p>
             </div>
             <div className="chart-legend">
-              <span className="legend-key">
-                <i className="dot" style={{ background: "#365e43" }} />
-                Income
-              </span>
+              {!expensesOnly && (
+                <span className="legend-key">
+                  <i className="dot" style={{ background: "#365e43" }} />
+                  Income
+                </span>
+              )}
               <span className="legend-key">
                 <i className="dot" style={{ background: "#c5d1ae" }} />
                 Expenses
@@ -184,14 +210,16 @@ export default function Home() {
                     content={<ChartTooltip />}
                     cursor={{ fill: "#f7f9f3" }}
                   />
-                  <Bar
-                    isAnimationActive={false}
-                    name="Income"
-                    dataKey="income"
-                    fill="#365e43"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={23}
-                  />
+                  {!expensesOnly && (
+                    <Bar
+                      isAnimationActive={false}
+                      name="Income"
+                      dataKey="income"
+                      fill="#365e43"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={23}
+                    />
+                  )}
                   <Bar
                     isAnimationActive={false}
                     name="Expenses"
@@ -214,13 +242,23 @@ export default function Home() {
               }}
             >
               <ChartNoAxesColumnIncreasing size={30} />
-              <strong>Your cash flow starts here</strong>
-              <p>Add transactions to see your income and spending over time.</p>
+              <strong>
+                {expensesOnly
+                  ? "Your spending starts here"
+                  : "Your cash flow starts here"}
+              </strong>
+              <p>
+                {expensesOnly
+                  ? "Add an expense to see your spending over time."
+                  : "Add transactions to see your income and spending over time."}
+              </p>
             </div>
           )}
           <div className="cashflow-footer">
             <span>
-              {monthlyIncome > 0 ? (
+              {expensesOnly ? (
+                "Every expense helps you understand your spending."
+              ) : monthlyIncome > 0 ? (
                 <>
                   <strong>
                     {Math.abs(Math.round((net / monthlyIncome) * 100))}%
@@ -300,11 +338,14 @@ export default function Home() {
       </div>
       <div className="overview-grid" style={{ alignItems: "start" }}>
         <TransactionsTable
-          transactions={data.transactions || []}
-          page={page}
-          totalPages={data.totalPages || 1}
-          onPrev={() => setPage((p) => Math.max(1, p - 1))}
-          onNext={() => setPage((p) => Math.min(p + 1, data.totalPages || 1))}
+          expensesOnly={expensesOnly}
+          transactions={activity.transactions}
+          page={activity.currentPage}
+          totalPages={activity.totalPages}
+          onPrev={() => setPage(Math.max(1, activity.currentPage - 1))}
+          onNext={() =>
+            setPage(Math.min(activity.currentPage + 1, activity.totalPages))
+          }
         />
         <div className="overview-stack">
           <BudgetHealthCard

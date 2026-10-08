@@ -40,12 +40,36 @@ const pages = {
   ],
   debts: ["Shared expenses", "Keep shared costs and balances easy to follow."],
 }
+
+function readOverviewPreference(key) {
+  try {
+    return key && localStorage.getItem(key) === "expenses"
+  } catch {
+    return false
+  }
+}
+
 export default function DashboardLayout() {
   const [showIncome, setShowIncome] = useState(false)
   const [showExpense, setShowExpense] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [contentRevision, setContentRevision] = useState(0)
   const { token, user, completeTutorial } = useAuth()
+  const [overviewPreference, setOverviewPreference] = useState(null)
+  const preferenceKey = user?._id ? `overview_view_${user._id}` : null
+  const expensesOnly =
+    overviewPreference?.key === preferenceKey
+      ? overviewPreference.expensesOnly
+      : readOverviewPreference(preferenceKey)
+  const changeOverview = (value) => {
+    setOverviewPreference({ key: preferenceKey, expensesOnly: value })
+    try {
+      if (preferenceKey)
+        localStorage.setItem(preferenceKey, value ? "expenses" : "full")
+    } catch {
+      // The view still works when browser storage is unavailable.
+    }
+  }
   const location = useLocation()
   const mobileNav = useRef(null)
   const authToken = token || localStorage.getItem("token")
@@ -179,13 +203,19 @@ export default function DashboardLayout() {
                   : title}
                 {!section && <span style={{ color: "#8f9e7f" }}>.</span>}
               </h1>
-              <p>{subtitle}</p>
+              <p>
+                {!section && expensesOnly
+                  ? "Keep track of your spending. No income entry needed."
+                  : subtitle}
+              </p>
             </div>
             <div className="page-actions">
-              <button onClick={() => setShowIncome(true)} className="btn">
-                <ArrowDownLeft size={15} />
-                Add income
-              </button>
+              {(section || !expensesOnly) && (
+                <button onClick={() => setShowIncome(true)} className="btn">
+                  <ArrowDownLeft size={15} />
+                  Add income
+                </button>
+              )}
               <button
                 onClick={() => setShowExpense(true)}
                 className="btn btn-primary"
@@ -195,8 +225,37 @@ export default function DashboardLayout() {
               </button>
             </div>
           </div>
+          {!section && (
+            <div className="overview-view-control">
+              <div
+                className="view-switcher"
+                role="group"
+                aria-label="Overview view"
+              >
+                <button
+                  type="button"
+                  aria-pressed={!expensesOnly}
+                  onClick={() => changeOverview(false)}
+                >
+                  Full overview
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={Boolean(expensesOnly)}
+                  onClick={() => changeOverview(true)}
+                >
+                  Expenses only
+                </button>
+              </div>
+              <span>
+                {expensesOnly
+                  ? "Focus on what you spend"
+                  : "Income, spending, and savings"}
+              </span>
+            </div>
+          )}
           <div
-            key={`${location.pathname}:${section && section !== "transactions" ? contentRevision : ""}`}
+            key={`${location.pathname}:${!section ? Boolean(expensesOnly) : section !== "transactions" ? contentRevision : ""}`}
             className="page-enter"
           >
             <Suspense
@@ -206,7 +265,7 @@ export default function DashboardLayout() {
                 </div>
               }
             >
-              <Outlet />
+              <Outlet context={{ expensesOnly: Boolean(expensesOnly) }} />
             </Suspense>
           </div>
         </main>

@@ -12,6 +12,7 @@ These informed the information hierarchy; FinTrack's palette, layouts, and compo
 ## Interface conventions
 
 - The overview shows lifetime balance separately from the current month's income, expenses, and savings. Monthly calculations use transaction dates, including the year.
+- The overview's Expenses only button switches to monthly spending, daily average, lifetime expenses, an expense chart, and paginated recent expenses. It keeps Add expense available and hides the income action on the overview. Full overview restores the original summary. This display preference is saved per account in this browser; transaction data and other pages are unchanged.
 - The cash-flow chart covers the last six calendar months and explicitly includes empty months.
 - The primary action is Add expense; Add income is a secondary action. Both use the same accessible dialog component, default to today's local date, support decimal amounts, and show submission errors without discarding input.
 - Transactions update after saves without reloading the entire application. Search resets pagination and safely encodes query text. CSV export explicitly applies to the visible page.
@@ -30,4 +31,4 @@ npm run lint
 npm test
 ```
 
-The five finance tests cover monthly filtering, year boundaries, transaction types, category grouping, and empty accounts. Desktop and mobile browser checks were performed with mocked API responses, including all dashboard routes, transaction creation and failed-save recovery, modal keyboard navigation, search, pagination, CSV download, and empty/error states. Production database connectivity and live authentication were not exercised by those browser checks. No sample transactions are included in application code.
+The finance tests cover monthly filtering, year boundaries, transaction types, category grouping, empty accounts, and expense filtering before pagination. Desktop and mobile browser checks were performed with mocked API responses, including all dashboard routes, transaction creation and failed-save recovery, modal keyboard navigation, search, pagination, CSV download, and empty/error states. Expenses-only checks cover view switching, saved preferences, account isolation, expense creation and refresh, income-only empty states, and widths from 320 to 1440 px. Production database connectivity and live authentication were not exercised by those browser checks. No sample transactions are included in application code.
