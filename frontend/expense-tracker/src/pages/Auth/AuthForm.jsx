@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowRight } from "lucide-react"
 import { AUTH_API } from "../../utils/apiPaths"
+import { authenticate } from "../../utils/authRequest"
 import { useAuth } from "../../context/AuthContext"
 import Brand from "../../components/ui/Brand"
 export default function AuthForm({ signup = false }) {
@@ -9,28 +10,45 @@ export default function AuthForm({ signup = false }) {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [slow, setSlow] = useState(false)
+  const pending = useRef(null)
+  useEffect(() => () => pending.current?.abort(), [])
   const submit = async (event) => {
     event.preventDefault()
+    if (pending.current) return
+    // Read successful controls before disabling the fieldset.
+    const fields = new FormData(event.currentTarget)
+    const credentials = {
+      email: String(fields.get("email") || "")
+        .trim()
+        .toLowerCase(),
+      password: String(fields.get("password") || ""),
+      ...(signup ? { name: String(fields.get("name") || "").trim() } : {}),
+    }
+    const controller = new AbortController()
+    pending.current = controller
     setLoading(true)
     setError("")
-    const form = new FormData(event.target)
+    setSlow(false)
+    const slowTimer = setTimeout(() => setSlow(true), 8000)
     try {
-      const response = await fetch(signup ? AUTH_API.SIGNUP : AUTH_API.LOGIN, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(Object.fromEntries(form)),
-      })
-      const data = await response.json()
-      if (!response.ok)
-        throw new Error(
-          data.message || "We couldn’t sign you in. Please try again.",
-        )
-      login(data.token)
-      navigate("/dashboard")
+      const token = await authenticate(
+        signup ? AUTH_API.SIGNUP : AUTH_API.LOGIN,
+        credentials,
+        { signal: controller.signal },
+      )
+      if (controller.signal.aborted) return
+      login(token)
+      navigate("/dashboard", { replace: true })
     } catch (err) {
-      setError(err.message)
+      if (!controller.signal.aborted) setError(err.message)
     } finally {
-      setLoading(false)
+      clearTimeout(slowTimer)
+      if (!controller.signal.aborted) {
+        pending.current = null
+        setLoading(false)
+        setSlow(false)
+      }
     }
   }
   return (
@@ -70,7 +88,7 @@ export default function AuthForm({ signup = false }) {
             ? "Create your account and take the first step toward a clearer financial picture."
             : "Sign in to pick up where you left off."}
         </p>
-        <form onSubmit={submit}>
+        <form onSubmit={submit} aria-busy={loading}>
           <fieldset
             disabled={loading}
             style={{ border: 0, padding: 0, margin: 0 }}
@@ -112,6 +130,20 @@ export default function AuthForm({ signup = false }) {
                 minLength={signup ? 6 : undefined}
               />
             </label>
+            {slow && (
+              <p
+                role="status"
+                style={{
+                  color: "var(--muted)",
+                  fontSize: 12,
+                  lineHeight: 1.7,
+                  marginBottom: 16,
+                }}
+              >
+                Connecting to the server is taking longer than usual. Please
+                keep this page open; we’ll stop waiting after one minute.
+              </p>
+            )}
             {error && (
               <div className="form-error" role="alert">
                 {error}
@@ -120,6 +152,7 @@ export default function AuthForm({ signup = false }) {
             <button
               className="btn btn-primary"
               type="submit"
+              disabled={loading}
               style={{ width: "100%", minHeight: 45, marginTop: 6 }}
             >
               {loading ? "Please wait…" : signup ? "Create account" : "Sign in"}
