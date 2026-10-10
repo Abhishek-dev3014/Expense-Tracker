@@ -44,3 +44,11 @@ The finance tests cover monthly filtering, year boundaries, transaction types, c
 - Browser checks used a local mock API: sign-in, show/hide password, expense creation with immediate refresh, expenses-only persistence, and mobile navigation.
 - Reviewed overview at 320, 390, 768, 1024, and 1440 px; checked the remaining dashboard routes on mobile and desktop, including analytics after responsive chart resizing.
 - Preview transactions belong only to the temporary local fixture server. No production transactions or credentials were used.
+
+## Custom categories
+
+The transaction dialog offers Add category underneath the category selector. A successful save immediately selects the new category, then lists it under Your categories on future visits. Categories are stored in MongoDB by authenticated account and transaction type, so expense and income lists stay separate and follow the account across browsers. Existing transactions keep their category strings unchanged.
+
+The authenticated GET/POST `/api/categories` endpoints validate names (1–40 characters), normalize whitespace and case for duplicate matching, and atomically upsert against a unique account/type/name index. The backend must deploy alongside the frontend. Loading or saving failures remain visible and retryable; the UI never claims a failed save persisted.
+
+Category handler tests cover account scoping, validation, built-in reuse, concurrent duplicate creation, and database failure responses. Local browser checks with a mock API cover creating a category, selecting it immediately, reloading and reusing it, saving an expense with it, and keeping it out of income categories. Production database writes were not used for testing.

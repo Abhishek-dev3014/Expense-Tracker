@@ -1614,3 +1614,36 @@ dialog.transaction-dialog::backdrop {
     height: 330px;
   }
 }
+
+.transaction-details-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.category-add {
+  align-self: flex-start;
+  padding: 5px 0;
+}
+.category-editor {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg);
+  display: grid;
+  gap: 10px;
+}
+.category-editor-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.category-editor-actions .btn {
+  font-size: 12px;
+}
+.category-error {
+  color: var(--danger);
+  font-size: 12px;
+}
+.category-load-error {
+  color: var(--muted);
+  font-size: 12px;
+}

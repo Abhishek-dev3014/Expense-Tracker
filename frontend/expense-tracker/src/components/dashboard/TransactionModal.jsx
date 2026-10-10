@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react"
+import CategorySelect from "./CategorySelect"
 import { X, ArrowRight } from "lucide-react"
 export default function TransactionModal({ type, onClose, onSubmit }) {
   const dialog = useRef(null)
+  const [categorySaving, setCategorySaving] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const income = type === "income"
@@ -21,7 +23,7 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
   }, [])
   const submit = async (event) => {
     event.preventDefault()
-    if (saving) return
+    if (saving || categorySaving) return
     const form = event.target
     setSaving(true)
     setError("")
@@ -66,10 +68,10 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
       }}
       onCancel={(event) => {
         event.preventDefault()
-        if (!saving) onClose()
+        if (!saving && !categorySaving) onClose()
       }}
       onClick={(event) => {
-        if (event.target === dialog.current && !saving) {
+        if (event.target === dialog.current && !saving && !categorySaving) {
           const rect = dialog.current.getBoundingClientRect()
           if (
             event.clientX < rect.left ||
@@ -86,7 +88,7 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
         <button
           className="icon-button"
           aria-label="Close dialog"
-          disabled={saving}
+          disabled={saving || categorySaving}
           onClick={onClose}
         >
           <X size={18} />
@@ -126,37 +128,8 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
               maxLength={200}
             />
           </label>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="form-field">
-              <label htmlFor="transaction-category">Category</label>
-              <select
-                id="transaction-category"
-                name="category"
-                required={income}
-              >
-                <option value="">
-                  {income ? "Select category" : "Auto-detect"}
-                </option>
-                {(income
-                  ? ["Salary", "Freelance", "Business", "Investment", "Other"]
-                  : [
-                      "Food",
-                      "Transport",
-                      "Shopping",
-                      "Rent",
-                      "Utilities",
-                      "Entertainment",
-                      "Health",
-                      "Education",
-                      "Other",
-                    ]
-                ).map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="transaction-details-grid">
+            <CategorySelect type={type} onBusyChange={setCategorySaving} />
             <label className="form-field" htmlFor="transaction-date">
               Date
               <input
@@ -175,6 +148,7 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
           )}
           <button
             type="submit"
+            disabled={categorySaving}
             className="btn btn-primary"
             style={{ width: "100%", minHeight: 44, marginTop: 8 }}
           >

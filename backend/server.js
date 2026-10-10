@@ -3,6 +3,7 @@ import mongoose from "mongoose"
 import cors from "cors"
 import dotenv from "dotenv"
 
+import categoryRoutes from "./routes/categoryRoutes.js"
 import authRoutes from "./routes/authRoutes.js"
 import dashboardRoutes from "./routes/dashboardRoutes.js"
 import transactionRoutes from "./routes/transactionRoutes.js"
@@ -75,6 +76,7 @@ app.use("/api", (_req, res, next) => {
 })
 
 app.use("/api/auth", authRoutes)
+app.use("/api/categories", categoryRoutes)
 app.use("/api/dashboard", dashboardRoutes)
 app.use("/api", transactionRoutes)
 app.use("/api/budget", budgetRoutes)
