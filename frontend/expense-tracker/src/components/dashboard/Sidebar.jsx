@@ -15,7 +15,6 @@ import {
   Wallet,
   X,
   ArrowUpRight,
-  Sprout,
 } from "lucide-react"
 
 const sections = [
@@ -66,7 +65,7 @@ export default function Sidebar({ mobile = false, onClose }) {
         <Wallet size={17} />
         <div>
           <strong>Personal workspace</strong>
-          <span>Your money, in one place</span>
+          <span>Personal finance</span>
         </div>
       </div>
       <nav
@@ -98,11 +97,10 @@ export default function Sidebar({ mobile = false, onClose }) {
       </nav>
       <div className="sidebar-bottom">
         <div className="sidebar-note">
-          <Sprout size={19} color="#6d865d" style={{ marginBottom: 8 }} />
-          <strong>Small steps. Lasting progress.</strong>
-          <p>A little planning today makes room for what matters tomorrow.</p>
-          <Link to="/dashboard/goals" onClick={onClose}>
-            Explore your goals <ArrowUpRight size={13} />
+          <strong>Your monthly plan</strong>
+          <p>Set spending limits that work for you.</p>
+          <Link to="/dashboard/budget" onClick={onClose}>
+            Manage budgets <ArrowUpRight size={13} />
           </Link>
         </div>
         <div className="profile">

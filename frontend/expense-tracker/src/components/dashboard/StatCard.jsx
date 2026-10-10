@@ -1,8 +1,15 @@
-const StatCard = ({ title, value, subtitle, highlight = false, icon }) => (
-  <div className={`stat-card${highlight ? " featured" : ""}`}>
+const StatCard = ({
+  title,
+  value,
+  subtitle,
+  highlight = false,
+  icon,
+  tone = "neutral",
+}) => (
+  <div className={`stat-card stat-${tone}${highlight ? " featured" : ""}`}>
     <div className="stat-label">
       <span>{title}</span>
-      {icon}
+      <span className="stat-icon">{icon}</span>
     </div>
     <div className="stat-value">
       {new Intl.NumberFormat("en-IN", {

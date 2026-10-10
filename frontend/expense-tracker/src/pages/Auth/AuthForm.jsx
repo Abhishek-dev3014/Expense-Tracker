@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowRight } from "lucide-react"
+import {
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Receipt,
+  ChartNoAxesCombined,
+  Target,
+} from "lucide-react"
 import { AUTH_API } from "../../utils/apiPaths"
 import { authenticate } from "../../utils/authRequest"
 import { useAuth } from "../../context/AuthContext"
@@ -11,6 +18,7 @@ export default function AuthForm({ signup = false }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [slow, setSlow] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const pending = useRef(null)
   useEffect(() => () => pending.current?.abort(), [])
   const submit = async (event) => {
@@ -57,35 +65,50 @@ export default function AuthForm({ signup = false }) {
         <Brand />
         <div>
           <div className="eyebrow" style={{ marginBottom: 22 }}>
-            A little more clarity
+            YOUR PERSONAL FINANCE WORKSPACE
           </div>
           <h1>
-            Good things grow
-            <br />
-            with a little
-            <br />
-            attention.
+            Your money.
+            <br />A clearer view.
           </h1>
           <p>
-            Know where your money goes. Make room for your goals. Feel more at
-            home with your finances.
+            Track everyday spending, plan your budget, and see your progress.
+            All in one focused workspace.
           </p>
-          <div className="auth-illustration" aria-hidden="true">
-            {[28, 43, 38, 62, 76, 67, 100].map((height, index) => (
-              <span key={index} style={{ height: `${height}%` }} />
-            ))}
+          <div className="auth-features">
+            <div>
+              <Receipt size={20} />
+              <span>
+                <strong>Every expense, organised</strong>
+                <small>Keep your daily transactions in one place.</small>
+              </span>
+            </div>
+            <div>
+              <ChartNoAxesCombined size={20} />
+              <span>
+                <strong>Understand your spending</strong>
+                <small>See patterns with clear monthly breakdowns.</small>
+              </span>
+            </div>
+            <div>
+              <Target size={20} />
+              <span>
+                <strong>Plan your next step</strong>
+                <small>Build a budget and track your savings goals.</small>
+              </span>
+            </div>
           </div>
         </div>
-        <small>Your everyday finances, thoughtfully organised.</small>
+        <small>FinTrack · Personal finance, simplified.</small>
       </section>
       <main className="auth-form-wrap">
         <div style={{ marginBottom: 44 }}>
           <Brand />
         </div>
-        <h2>{signup ? "Start with a fresh perspective." : "Welcome back."}</h2>
+        <h2>{signup ? "Create your account." : "Welcome back."}</h2>
         <p>
           {signup
-            ? "Create your account and take the first step toward a clearer financial picture."
+            ? "Start tracking your expenses and planning your finances."
             : "Sign in to pick up where you left off."}
         </p>
         <form onSubmit={submit} aria-busy={loading}>
@@ -116,20 +139,34 @@ export default function AuthForm({ signup = false }) {
                 required
               />
             </label>
-            <label className="form-field" htmlFor="auth-password">
-              Password
-              <input
-                id="auth-password"
-                type="password"
-                name="password"
-                autoComplete={signup ? "new-password" : "current-password"}
-                placeholder={
-                  signup ? "Create a password" : "Enter your password"
-                }
-                required
-                minLength={signup ? 6 : undefined}
-              />
-            </label>
+            <div className="form-field">
+              <label htmlFor="auth-password">Password</label>
+              <div className="password-input">
+                <input
+                  id="auth-password"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  autoComplete={signup ? "new-password" : "current-password"}
+                  placeholder={
+                    signup ? "Create a password" : "Enter your password"
+                  }
+                  required
+                  minLength={signup ? 6 : undefined}
+                />
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-controls="auth-password"
+                  onClick={() => setShowPassword((value) => !value)}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {signup && (
+                <small className="field-hint">Use at least 6 characters.</small>
+              )}
+            </div>
             {slow && (
               <p
                 role="status"

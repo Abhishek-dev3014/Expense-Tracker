@@ -30,13 +30,13 @@ export default function BudgetHealthCard({
         <div className="budget-content">
           <div
             className="budget-amount"
-            style={{ color: over ? "#a06346" : "var(--text)" }}
+            style={{ color: over ? "#b74d42" : "var(--text)" }}
           >
             {formatCurrency(Math.abs(remaining))}
             <span
               style={{
-                fontSize: 11,
-                fontFamily: "DM Sans",
+                fontSize: 12,
+                fontFamily: "Inter",
                 letterSpacing: 0,
                 fontWeight: 400,
                 color: "var(--muted)",
@@ -63,7 +63,7 @@ export default function BudgetHealthCard({
               className="progress-fill"
               style={{
                 width: `${Math.min(used, 100)}%`,
-                background: over ? "#b07b59" : "#8d9f73",
+                background: over ? "#d38a38" : "#178577",
               }}
             />
           </div>

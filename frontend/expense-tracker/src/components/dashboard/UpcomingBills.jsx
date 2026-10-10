@@ -73,15 +73,15 @@ export default function UpcomingBills({ revision = 0 }) {
               </small>
               <strong>{new Date(bill.nextOccurrence).getDate()}</strong>
             </div>
-            <div style={{ flex: 1, fontSize: 11, fontWeight: 500 }}>
+            <div style={{ flex: 1, fontSize: 12, fontWeight: 500 }}>
               {bill.title}
               <div
-                style={{ fontSize: 10, color: "var(--muted)", marginTop: 3 }}
+                style={{ fontSize: 12, color: "var(--muted)", marginTop: 3 }}
               >
                 {bill.category}
               </div>
             </div>
-            <strong style={{ fontSize: 11, fontWeight: 600 }}>
+            <strong style={{ fontSize: 12, fontWeight: 600 }}>
               {formatCurrency(Math.abs(bill.amount))}
             </strong>
           </Link>

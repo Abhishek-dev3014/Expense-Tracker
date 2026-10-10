@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import { Link, useOutletContext } from "react-router-dom"
 import {
   ArrowUpRight,
-  CalendarDays,
   ChartNoAxesColumnIncreasing,
   PieChart,
   RefreshCw,
@@ -24,7 +23,7 @@ import TransactionsTable from "../../components/dashboard/TransactionsTable"
 import UpcomingBills from "../../components/dashboard/UpcomingBills"
 import BudgetHealthCard from "../../components/dashboard/BudgetHealthCard"
 
-const COLORS = ["#365e43", "#8b9d73", "#c2ad88", "#a5b9b0", "#d4c8af"]
+const COLORS = ["#4877ed", "#178577", "#e5a14f", "#8b78bd", "#cf7f8c"]
 const ChartTooltip = ({ active, payload, label }) =>
   active && payload?.length ? (
     <div className="chart-tooltip">
@@ -32,7 +31,7 @@ const ChartTooltip = ({ active, payload, label }) =>
       {payload.map((item) => (
         <p
           key={item.dataKey}
-          style={{ color: item.dataKey === "income" ? "#365e43" : "#798759" }}
+          style={{ color: item.dataKey === "income" ? "#178577" : "#a96c24" }}
         >
           {item.name}: {formatCurrency(item.value)}
         </p>
@@ -129,31 +128,12 @@ export default function Home() {
       }
   return (
     <div className="space-y-5" aria-busy={loading}>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xs font-semibold" style={{ color: "#5a6857" }}>
-          At a glance
-        </h2>
-        <span
-          className="flex items-center gap-2 text-[10px]"
-          style={{ color: "var(--muted)" }}
-        >
-          <CalendarDays size={12} />
-          {new Date().toLocaleDateString("en-IN", {
-            month: "long",
-            year: "numeric",
-          })}
-        </span>
-      </div>
       <StatsGrid data={data} expensesOnly={expensesOnly} />
       <div className="overview-grid">
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <h2>
-                {expensesOnly
-                  ? "Your spending over time"
-                  : "Money in, money out"}
-              </h2>
+              <h2>{expensesOnly ? "Your spending over time" : "Cash flow"}</h2>
               <p>
                 {expensesOnly
                   ? "Monthly expenses over the last 6 months"
@@ -163,12 +143,12 @@ export default function Home() {
             <div className="chart-legend">
               {!expensesOnly && (
                 <span className="legend-key">
-                  <i className="dot" style={{ background: "#365e43" }} />
+                  <i className="dot" style={{ background: "#178577" }} />
                   Income
                 </span>
               )}
               <span className="legend-key">
-                <i className="dot" style={{ background: "#c5d1ae" }} />
+                <i className="dot" style={{ background: "#e5a14f" }} />
                 Expenses
               </span>
             </div>
@@ -183,20 +163,20 @@ export default function Home() {
                 >
                   <CartesianGrid
                     vertical={false}
-                    stroke="#edf0e8"
+                    stroke="#eaf0f6"
                     strokeDasharray="3 4"
                   />
                   <XAxis
                     dataKey="month"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#899180", fontSize: 10 }}
+                    tick={{ fill: "#6a7b95", fontSize: 12 }}
                     dy={8}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#899180", fontSize: 9 }}
+                    tick={{ fill: "#6a7b95", fontSize: 12 }}
                     tickFormatter={(v) =>
                       v >= 100000
                         ? `₹${v / 100000}L`
@@ -208,14 +188,14 @@ export default function Home() {
                   />
                   <Tooltip
                     content={<ChartTooltip />}
-                    cursor={{ fill: "#f7f9f3" }}
+                    cursor={{ fill: "#f4f7fc" }}
                   />
                   {!expensesOnly && (
                     <Bar
                       isAnimationActive={false}
                       name="Income"
                       dataKey="income"
-                      fill="#365e43"
+                      fill="#178577"
                       radius={[4, 4, 0, 0]}
                       maxBarSize={23}
                     />
@@ -224,7 +204,7 @@ export default function Home() {
                     isAnimationActive={false}
                     name="Expenses"
                     dataKey="expense"
-                    fill="#c5d1ae"
+                    fill="#e5a14f"
                     radius={[4, 4, 0, 0]}
                     maxBarSize={23}
                   />
@@ -277,16 +257,45 @@ export default function Home() {
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <h2>Where your money goes</h2>
+              <h2>Spending breakdown</h2>
               <p>Spending by category · This month</p>
             </div>
-            <PieChart size={17} color="#89977e" />
+            <PieChart size={17} color="#6f83a2" />
           </div>
           {categories.length ? (
             <>
-              <div className="spend-total">
-                <strong>{formatCurrency(monthlyExpense)}</strong>
-                <span>total spent</span>
+              <div className="spending-summary">
+                <div className="spend-total">
+                  <span>Total spent this month</span>
+                  <strong>{formatCurrency(monthlyExpense)}</strong>
+                </div>
+                <svg
+                  className="spending-ring"
+                  viewBox="0 0 100 100"
+                  aria-hidden="true"
+                >
+                  {categories.map((category, index) => (
+                    <circle
+                      key={category.name}
+                      cx="50"
+                      cy="50"
+                      r="39"
+                      fill="none"
+                      stroke={COLORS[index]}
+                      strokeWidth="13"
+                      pathLength="100"
+                      strokeDasharray={`${(category.value / monthlyExpense) * 100} 100`}
+                      strokeDashoffset={
+                        (-categories
+                          .slice(0, index)
+                          .reduce((sum, item) => sum + item.value, 0) /
+                          monthlyExpense) *
+                        100
+                      }
+                      transform="rotate(-90 50 50)"
+                    />
+                  ))}
+                </svg>
               </div>
               <div className="category-list">
                 {categories.map((category, index) => (
@@ -305,7 +314,7 @@ export default function Home() {
                           style={{
                             display: "inline",
                             color: "var(--muted)",
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: 400,
                             marginLeft: 5,
                           }}
@@ -359,9 +368,9 @@ export default function Home() {
       <div className="overview-footer">
         <span
           className="dot"
-          style={{ background: "#95a585", width: 5, height: 5 }}
+          style={{ background: "#3265df", width: 5, height: 5 }}
         />
-        A clearer picture. A little more peace of mind.
+        All amounts in INR · Monthly figures use transaction dates
       </div>
     </div>
   )

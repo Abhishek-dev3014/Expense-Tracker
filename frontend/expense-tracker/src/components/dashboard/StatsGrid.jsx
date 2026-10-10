@@ -48,18 +48,21 @@ export default function StatsGrid({ data, expensesOnly = false }) {
       />
       <StatCard
         title="Income"
+        tone="income"
         value={monthlyIncome}
         subtitle="Received this month"
         icon={<ArrowDownLeft />}
       />
       <StatCard
         title="Expenses"
+        tone="expense"
         value={monthlyExpense}
         subtitle="Spent this month"
         icon={<ArrowUpRight />}
       />
       <StatCard
         title="Net savings"
+        tone="savings"
         value={monthlyIncome - monthlyExpense}
         subtitle="Income minus expenses this month"
         icon={<Sprout />}

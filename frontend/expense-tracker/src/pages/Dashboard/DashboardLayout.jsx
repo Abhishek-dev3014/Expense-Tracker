@@ -1,6 +1,6 @@
 import { Outlet, Navigate, useLocation } from "react-router-dom"
 import { useState, useEffect, useRef, Suspense } from "react"
-import { Plus, ArrowDownLeft } from "lucide-react"
+import { Plus, ArrowDownLeft, CalendarDays } from "lucide-react"
 import Sidebar from "../../components/dashboard/Sidebar"
 import Topbar from "../../components/dashboard/Topbar"
 import AddIncomeModal from "../../components/dashboard/AddIncomeModal"
@@ -11,7 +11,7 @@ import { useAuth } from "../../context/AuthContext"
 import axios from "axios"
 
 const pages = {
-  "": ["Overview", "A little clarity for your everyday finances."],
+  "": ["Overview", "Here’s how your finances are looking this month."],
   transactions: [
     "Transactions",
     "Every income and expense, neatly in one place.",
@@ -194,14 +194,11 @@ export default function DashboardLayout() {
         <main className="main-scroller" id="main-content">
           <div className="page-header">
             <div>
-              {!section && (
-                <div className="eyebrow">Your financial picture</div>
-              )}
               <h1>
                 {!section
                   ? `Welcome back${user?.name ? `, ${user.name.split(" ")[0]}` : ""}`
                   : title}
-                {!section && <span style={{ color: "#8f9e7f" }}>.</span>}
+                {!section && <span style={{ color: "#3265df" }}>.</span>}
               </h1>
               <p>
                 {!section && expensesOnly
@@ -247,10 +244,12 @@ export default function DashboardLayout() {
                   Expenses only
                 </button>
               </div>
-              <span>
-                {expensesOnly
-                  ? "Focus on what you spend"
-                  : "Income, spending, and savings"}
+              <span className="period-label">
+                <CalendarDays size={14} />
+                {new Date().toLocaleDateString("en-IN", {
+                  month: "long",
+                  year: "numeric",
+                })}
               </span>
             </div>
           )}

@@ -1,13 +1,16 @@
 # FinTrack UI
 
-The interface uses warm off-white surfaces, forest green primary actions, sage chart accents, and muted terracotta for spending alerts. Manrope is used for headings and DM Sans for body text. Keep borders subtle, corners modest, and financial amounts aligned with tabular numerals.
+The interface uses a navy navigation rail and balance card, cool off-white workspace, white data surfaces, and cobalt primary actions. Inter provides one consistent typeface across headings, controls, and financial figures. Teal identifies income, amber identifies spending, and errors retain a distinct red. Financial values use tabular numerals. Body and metadata sizes have been increased for readability, with 44 px primary controls and 16 px form inputs on small screens.
 
 ## Reference patterns
 
 - [Monarch's dashboard](https://help.monarch.com/hc/en-us/articles/360058127551-Customizing-Your-Dashboard) brings financial summaries, spending, transactions, and recurring payments into focused widgets.
 - [Copilot's dashboard](https://help.copilot.money/en/articles/6045480-dashboard-tab-overview) prioritises spending progress, remaining budget, recent transactions, upcoming payments, and net income.
 
-These informed the information hierarchy; FinTrack's palette, layouts, and components are independently implemented.
+- [Lunch Money](https://lunchmoney.app/) keeps transaction detail and category-level spending close to budgeting workflows.
+- [Copilot's product site](https://www.copilot.money/) uses prominent totals, restrained surfaces, and separate chart colors to make financial information easy to scan.
+
+Reviewed October 10, 2026. These references informed the hierarchy and use of color; FinTrack's palette, layouts, and components are independently implemented. The refresh reduces dashboard header space, introduces a proportional category ring alongside the exact category amounts, and keeps the table and primary expense action easy to find.
 
 ## Interface conventions
 
@@ -18,6 +21,8 @@ These informed the information hierarchy; FinTrack's palette, layouts, and compo
 - Transactions update after saves without reloading the entire application. Search resets pagination and safely encodes query text. CSV export explicitly applies to the visible page.
 - Mobile transaction rows keep amounts visible and move the category/date into a subtitle. Navigation becomes a keyboard-accessible drawer below 1024 px.
 - Use actual empty states instead of illustrative data in the product. API errors are distinct from an empty account.
+- Sign-in and sign-up share the navy/cobalt palette, practical feature descriptions, and an accessible show/hide password control.
+- Analytics labels distinguish all recorded spending from monthly figures; the previous average across weekday groups is no longer presented as a daily average.
 - Colour tokens and layout styles live in `src/index.css`; the reusable brand is in `src/components/ui/Brand.jsx`.
 
 ## Verification
@@ -32,3 +37,10 @@ npm test
 ```
 
 The finance tests cover monthly filtering, year boundaries, transaction types, category grouping, empty accounts, and expense filtering before pagination. Desktop and mobile browser checks were performed with mocked API responses, including all dashboard routes, transaction creation and failed-save recovery, modal keyboard navigation, search, pagination, CSV download, and empty/error states. Expenses-only checks cover view switching, saved preferences, account isolation, expense creation and refresh, income-only empty states, and widths from 320 to 1440 px. Production database connectivity and live authentication were not exercised by those browser checks. No sample transactions are included in application code.
+
+## October 10 refresh validation
+
+- Frontend unit tests, ESLint, and production build pass.
+- Browser checks used a local mock API: sign-in, show/hide password, expense creation with immediate refresh, expenses-only persistence, and mobile navigation.
+- Reviewed overview at 320, 390, 768, 1024, and 1440 px; checked the remaining dashboard routes on mobile and desktop, including analytics after responsive chart resizing.
+- Preview transactions belong only to the temporary local fixture server. No production transactions or credentials were used.
