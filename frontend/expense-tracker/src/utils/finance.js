@@ -33,7 +33,7 @@ export function buildOverview(data, now = new Date()) {
       expense: 0,
     }
   })
-  const categories = {}
+  const categories = new Map()
   let monthlyIncome = 0,
     monthlyExpense = 0
   for (const tx of transactions) {
@@ -53,19 +53,21 @@ export function buildOverview(data, now = new Date()) {
       if (income) monthlyIncome += amount
       else {
         monthlyExpense += amount
-        categories[tx.category || "Other"] =
-          (categories[tx.category || "Other"] || 0) + amount
+        const name = tx.category || "Other"
+        const category = categories.get(name) || { name, value: 0, transactions: [] }
+        category.value += amount
+        category.transactions.push(tx)
+        categories.set(name, category)
       }
     }
   }
-  const allCategories = Object.entries(categories).sort((a, b) => b[1] - a[1])
-  const topCategories = allCategories
-    .slice(0, 4)
-    .map(([name, value]) => ({ name, value }))
+  const allCategories = [...categories.values()].sort((a, b) => b.value - a.value)
+  const topCategories = allCategories.slice(0, 4)
   if (allCategories.length > 4)
     topCategories.push({
       name: "Other categories",
-      value: allCategories.slice(4).reduce((sum, entry) => sum + entry[1], 0),
+      value: allCategories.slice(4).reduce((sum, entry) => sum + entry.value, 0),
+      transactions: allCategories.slice(4).flatMap((entry) => entry.transactions),
     })
   return {
     ...data,
@@ -73,6 +75,7 @@ export function buildOverview(data, now = new Date()) {
     monthlyExpense,
     months,
     categories: topCategories,
+    spendingMonth: now.toLocaleDateString("en-IN", { month: "long", year: "numeric" }),
     averageDailyExpense: monthlyExpense / now.getDate(),
   }
 }

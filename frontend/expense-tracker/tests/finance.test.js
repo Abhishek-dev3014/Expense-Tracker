@@ -123,3 +123,38 @@ test("a new account has zero values, six empty months, and no fabricated categor
   assert.equal(data.months.length, 6)
   assert.deepEqual(data.categories, [])
 })
+
+test("category drilldowns contain only that month's expenses and match their totals", () => {
+  const first = tx([2026, 0, 1], -120, "expense")
+  const last = tx([2026, 0, 31, 23, 59, 59], 80, "expense")
+  const uncategorized = tx([2026, 0, 12], -25, "expense", "")
+  const data = buildOverview({ allTransactions: [
+    first, last, uncategorized,
+    tx([2026, 0, 4], 1000, "income"),
+    tx([2025, 11, 31, 23, 59, 59], -400, "expense"),
+    tx([2026, 1, 1], -500, "expense"),
+    tx([2025, 0, 1], -600, "expense"),
+  ] }, now)
+  assert.deepEqual(data.categories[0].transactions, [first, last])
+  assert.equal(data.categories[0].value, 200)
+  assert.equal(data.categories[1].name, "Other")
+  assert.deepEqual(data.categories[1].transactions, [uncategorized])
+  assert.equal(data.spendingMonth, "January 2026")
+})
+
+test("grouped category drilldowns include every contributing expense exactly once", () => {
+  const allTransactions = ["Other categories", "Food", "Rent", "Travel", "Health", "Books"]
+    .flatMap((category, index) => Array.from({ length: 3 }, () =>
+      tx([2026, 0, 3], -(100 - index * 10), "expense", category),
+    ))
+  const data = buildOverview({ allTransactions }, now)
+  const grouped = data.categories[4]
+  assert.equal(data.categories[0].name, "Other categories")
+  assert.equal(grouped.name, "Other categories")
+  assert.deepEqual(new Set(grouped.transactions.map((tx) => tx.category)), new Set(["Health", "Books"]))
+  assert.equal(grouped.transactions.length, 6)
+  for (const category of data.categories) {
+    assert.equal(category.value, category.transactions.reduce((sum, tx) => sum + Math.abs(tx.amount), 0))
+  }
+  assert.equal(new Set(data.categories.flatMap((category) => category.transactions)).size, allTransactions.length)
+})

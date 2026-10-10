@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link, useOutletContext } from "react-router-dom"
 import {
+  ArrowRight,
   ArrowUpRight,
   ChartNoAxesColumnIncreasing,
   PieChart,
@@ -20,6 +21,7 @@ import { BASE_URL } from "../../utils/apiPaths"
 import { buildOverview, expensePage, formatCurrency } from "../../utils/finance"
 import StatsGrid from "../../components/dashboard/StatsGrid"
 import TransactionsTable from "../../components/dashboard/TransactionsTable"
+import CategoryTransactionsModal from "../../components/dashboard/CategoryTransactionsModal"
 import UpcomingBills from "../../components/dashboard/UpcomingBills"
 import BudgetHealthCard from "../../components/dashboard/BudgetHealthCard"
 
@@ -48,6 +50,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [revision, setRevision] = useState(0)
+  const [selectedCategory, setSelectedCategory] = useState(null)
   const requestPage = expensesOnly ? 1 : page
   useEffect(() => {
     const refresh = () => setRevision((value) => value + 1)
@@ -276,7 +279,7 @@ export default function Home() {
                 >
                   {categories.map((category, index) => (
                     <circle
-                      key={category.name}
+                      key={`${index}-${category.name}`}
                       cx="50"
                       cy="50"
                       r="39"
@@ -299,7 +302,14 @@ export default function Home() {
               </div>
               <div className="category-list">
                 {categories.map((category, index) => (
-                  <div className="category-row" key={category.name}>
+                  <button
+                    type="button"
+                    className="category-row category-drilldown"
+                    key={`${index}-${category.name}`}
+                    aria-label={`View ${category.name} transactions for ${data.spendingMonth}`}
+                    aria-haspopup="dialog"
+                    onClick={() => setSelectedCategory(category)}
+                  >
                     <div className="category-row-header">
                       <span>
                         <i
@@ -308,20 +318,23 @@ export default function Home() {
                         />
                         {category.name}
                       </span>
-                      <strong>
-                        {formatCurrency(category.value)}{" "}
-                        <span
-                          style={{
-                            display: "inline",
-                            color: "var(--muted)",
-                            fontSize: 12,
-                            fontWeight: 400,
-                            marginLeft: 5,
-                          }}
-                        >
-                          {Math.round((category.value / monthlyExpense) * 100)}%
-                        </span>
-                      </strong>
+                      <span className="category-row-amount">
+                        <strong>
+                          {formatCurrency(category.value)}{" "}
+                          <span
+                            style={{
+                              display: "inline",
+                              color: "var(--muted)",
+                              fontSize: 12,
+                              fontWeight: 400,
+                              marginLeft: 5,
+                            }}
+                          >
+                            {Math.round((category.value / monthlyExpense) * 100)}%
+                          </span>
+                        </strong>
+                        <ArrowRight size={16} aria-hidden="true" />
+                      </span>
                     </div>
                     <div className="progress-track">
                       <div
@@ -332,7 +345,7 @@ export default function Home() {
                         }}
                       />
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </>
@@ -372,6 +385,13 @@ export default function Home() {
         />
         All amounts in INR · Monthly figures use transaction dates
       </div>
+      {selectedCategory && (
+        <CategoryTransactionsModal
+          category={selectedCategory}
+          month={data.spendingMonth}
+          onClose={() => setSelectedCategory(null)}
+        />
+      )}
     </div>
   )
 }

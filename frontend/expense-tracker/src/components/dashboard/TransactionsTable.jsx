@@ -24,22 +24,25 @@ export default function TransactionsTable({
   onNext,
   onPrev,
   expensesOnly = false,
+  title,
+  subtitle,
+  headingAction,
 }) {
   return (
     <section className="panel">
       <div className="panel-heading" style={{ paddingBottom: 19 }}>
         <div>
-          <h2>{expensesOnly ? "Recent expenses" : "Recent transactions"}</h2>
+          <h2>{title ?? (expensesOnly ? "Recent expenses" : "Recent transactions")}</h2>
           <p>
-            {expensesOnly
+            {subtitle ?? (expensesOnly
               ? "Your latest spending"
-              : "Your latest money movements"}
+              : "Your latest money movements")}
           </p>
         </div>
-        <Link className="text-link" to="/dashboard/transactions">
+        {headingAction ?? <Link className="text-link" to="/dashboard/transactions">
           {expensesOnly ? "All transactions" : "View all"}{" "}
           <ArrowUpRight size={14} />
-        </Link>
+        </Link>}
       </div>
       {transactions.length === 0 ? (
         <div className="empty-state">

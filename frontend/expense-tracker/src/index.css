@@ -635,6 +635,56 @@ textarea::placeholder {
 .category-row-header strong {
   font-weight: 600;
 }
+.category-drilldown {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.category-drilldown:hover {
+  background: #f4f7fc;
+}
+.category-drilldown:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.category-row-amount {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.category-row-amount > svg {
+  color: var(--muted);
+}
+.category-drilldown:hover .category-row-amount > svg {
+  color: var(--accent);
+}
+.category-transactions-dialog {
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  width: min(760px, calc(100vw - 32px));
+  max-height: 85dvh;
+  overflow: auto;
+  color: var(--text);
+  background: white;
+  box-shadow: 0 24px 80px #17243b33;
+}
+.category-transactions-dialog::backdrop {
+  background: #17243b66;
+}
+.category-transactions-dialog .panel-heading > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.category-transactions-dialog .panel-heading > button {
+  flex-shrink: 0;
+}
 .progress-track {
   height: 5px;
   background: #eef2f8;
