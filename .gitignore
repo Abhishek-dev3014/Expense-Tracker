@@ -14,3 +14,19 @@ yarn-error.log*
 # Editor settings
 .vscode/
 .idea/
+
+# Java build output and local runtime settings
+backend/target/
+backend/.classpath
+backend/.project
+backend/.settings/
+.env
+!.env.example
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+
+# Frontend build artifacts
+frontend/expense-tracker/dist/

@@ -33,7 +33,7 @@ const Debts = () => {
   const handleSettle = async (txId, person) => {
     try {
       const token = localStorage.getItem("token")
-      await axios.post(`${BASE_URL}/api/splits/settle/${txId}/${person}`, {}, {
+      await axios.post(`${BASE_URL}/api/splits/settle/${txId}/${encodeURIComponent(person)}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       })
       fetchSummary()
