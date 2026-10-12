@@ -36,15 +36,25 @@ def main():
     parser.add_argument("api_origin", type=origin)
     parser.add_argument("frontend_origin", type=origin)
     args = parser.parse_args()
-    status, _, body = request(args.api_origin, "/api/health")
+    status, headers, body = request(args.api_origin, "/api/health")
+    check(headers.get("X-Powered-By", "").lower() != "express",
+          "API runs the Spring Boot release. If Express is still live, update the existing "
+          "Render service to Docker and deploy main; frontend redeploys cannot add the edit endpoint")
     check(status == 200, "API readiness returns HTTP 200")
     check(json.loads(body).get("status") == "ok", "MongoDB readiness is healthy")
     status, _, body = request(args.api_origin, "/actuator/health")
-    check(status == 200 and json.loads(body).get("status") == "UP", "Spring health is UP")
+    check(status == 200, "Spring health endpoint exists; deploy the Spring Boot backend if it returns 404")
+    check(json.loads(body).get("status") == "UP", "Spring health is UP")
     status, _, _ = request(args.api_origin, "/api/transactions")
     check(status == 401, "Private transactions require authentication")
     status, _, _ = request(args.api_origin, "/actuator/env")
     check(status in (401, 403), "Runtime environment is not publicly exposed")
+    status, headers, _ = request(args.api_origin, "/api/transactions/000000000000000000000000", "OPTIONS", {
+        "Origin": args.frontend_origin, "Access-Control-Request-Method": "PUT",
+        "Access-Control-Request-Headers": "authorization,content-type"})
+    check(status == 200 and headers.get("Access-Control-Allow-Origin") == args.frontend_origin
+          and "PUT" in headers.get("Access-Control-Allow-Methods", "").split(","),
+          "Configured frontend can send transaction edit requests (PUT)")
     for allowed, candidate in ((True, args.frontend_origin),
                                (False, "https://untrusted.invalid"),
                                (False, "http://localhost:5173")):
