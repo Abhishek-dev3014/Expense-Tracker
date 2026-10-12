@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react"
 import CategorySelect from "./CategorySelect"
 import { X, ArrowRight } from "lucide-react"
-export default function TransactionModal({ type, onClose, onSubmit }) {
+export default function TransactionModal({ type, transaction, onClose, onSubmit }) {
   const dialog = useRef(null)
   const [categorySaving, setCategorySaving] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const income = type === "income"
-  const now = new Date()
+  const now = transaction ? new Date(transaction.date) : new Date()
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
   useEffect(() => {
     const element = dialog.current
@@ -32,7 +32,7 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
         title: form.notes.value.trim(),
         amount: Number(form.amount.value),
         category: form.category.value,
-        date: form.date.value,
+        date: transaction && form.date.value === today ? transaction.date : form.date.value,
       })
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.")
@@ -84,7 +84,7 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
       }}
     >
       <div className="dialog-title">
-        <h2 id="transaction-dialog-title">Add {type}</h2>
+        <h2 id="transaction-dialog-title">{transaction ? "Edit" : "Add"} {type}</h2>
         <button
           className="icon-button"
           aria-label="Close dialog"
@@ -111,6 +111,7 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
               min="0.01"
               step="0.01"
               placeholder="0.00"
+              defaultValue={transaction ? Math.abs(transaction.amount) : ""}
               required
               autoFocus
               style={{ fontSize: 27, fontWeight: 600 }}
@@ -121,6 +122,7 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
             <input
               id="transaction-notes"
               name="notes"
+              defaultValue={transaction?.title ?? ""}
               placeholder={
                 income ? "e.g. October salary" : "e.g. Groceries for the week"
               }
@@ -129,7 +131,11 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
             />
           </label>
           <div className="transaction-details-grid">
-            <CategorySelect type={type} onBusyChange={setCategorySaving} />
+            <CategorySelect
+              type={type}
+              defaultValue={transaction?.category ?? ""}
+              onBusyChange={setCategorySaving}
+            />
             <label className="form-field" htmlFor="transaction-date">
               Date
               <input
@@ -152,7 +158,7 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
             className="btn btn-primary"
             style={{ width: "100%", minHeight: 44, marginTop: 8 }}
           >
-            {saving ? "Saving…" : `Save ${type}`}
+            {saving ? "Saving…" : transaction ? "Save changes" : `Save ${type}`}
             {!saving && <ArrowRight size={15} />}
           </button>
         </fieldset>

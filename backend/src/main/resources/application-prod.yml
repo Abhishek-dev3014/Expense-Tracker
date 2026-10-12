@@ -1,0 +1,9 @@
+# Activate with SPRING_PROFILES_ACTIVE=prod on the hosting service.
+# Production must explicitly supply its frontend origin(s).
+server:
+  forward-headers-strategy: native
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+app:
+  allowed-origins: ${FRONTEND_URL}

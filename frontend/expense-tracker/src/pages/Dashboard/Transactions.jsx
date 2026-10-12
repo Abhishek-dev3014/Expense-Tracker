@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import {
   Search,
   Trash2,
+  Pencil,
   Download,
   Upload,
   Users,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react"
 import ImportModal from "../../components/dashboard/ImportModal"
 import SplitModal from "../../components/dashboard/SplitModal"
+import EditTransactionModal from "../../components/dashboard/EditTransactionModal"
 import { BASE_URL } from "../../utils/apiPaths"
 
 export default function Transactions() {
@@ -26,6 +28,7 @@ export default function Transactions() {
   const [error, setError] = useState("")
   const [importOpen, setImportOpen] = useState(false)
   const [splitTransaction, setSplitTransaction] = useState(null)
+  const [editingTransaction, setEditingTransaction] = useState(null)
   const [revision, setRevision] = useState(0)
   const refresh = () => setRevision((value) => value + 1)
   useEffect(() => {
@@ -222,6 +225,15 @@ export default function Transactions() {
                   </td>
                   <td>
                     <div className="flex justify-end">
+                      <button
+                        type="button"
+                        className="icon-button"
+                        onClick={() => setEditingTransaction(tx)}
+                        aria-label={`Edit ${tx.title || "transaction"}`}
+                        title="Edit transaction"
+                      >
+                        <Pencil size={14} />
+                      </button>
                       {tx.type === "expense" && (
                         <button
                           className="icon-button"
@@ -298,6 +310,13 @@ export default function Transactions() {
         onClose={() => setImportOpen(false)}
         onRefresh={refresh}
       />
+      {editingTransaction && (
+        <EditTransactionModal
+          key={editingTransaction._id}
+          transaction={editingTransaction}
+          onClose={() => setEditingTransaction(null)}
+        />
+      )}
       <SplitModal
         isOpen={Boolean(splitTransaction)}
         onClose={() => setSplitTransaction(null)}

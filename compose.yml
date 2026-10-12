@@ -1,0 +1,27 @@
+# Optional, isolated local development stack. Does not use the existing remote database.
+services:
+  mongodb:
+    image: mongo:8.0
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - expense-mongo:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  backend:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/expense_tracker
+      PORT: 5001
+      ML_SERVICE_URL: ${ML_SERVICE_URL:-http://host.docker.internal:8000}
+    ports:
+      - "127.0.0.1:5001:5001"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+volumes:
+  expense-mongo:

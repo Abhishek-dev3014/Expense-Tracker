@@ -17,10 +17,10 @@ const defaults = {
   ],
   income: ["Salary", "Freelance", "Business", "Investment", "Other"],
 }
-export default function CategorySelect({ type, onBusyChange }) {
+export default function CategorySelect({ type, defaultValue = "", onBusyChange }) {
   const { token } = useAuth()
   const [categories, setCategories] = useState([])
-  const [value, setValue] = useState("")
+  const [value, setValue] = useState(defaultValue)
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState("")
   const [loading, setLoading] = useState(true)
@@ -147,6 +147,9 @@ export default function CategorySelect({ type, onBusyChange }) {
             {item}
           </option>
         ))}
+        {defaultValue && !defaults[type].includes(defaultValue) && !categories.includes(defaultValue) && (
+          <option value={defaultValue}>{defaultValue}</option>
+        )}
         {categories.length > 0 && (
           <optgroup label="Your categories">
             {categories
