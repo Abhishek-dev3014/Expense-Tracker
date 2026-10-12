@@ -70,6 +70,24 @@ The smoke script checks readiness, authentication boundaries, and exact CORS
 origins without credentials or database writes. It expects the production
 profile and deliberately rejects localhost access.
 
+## Transaction editing fails after a frontend release
+
+An HTML `404` containing `Cannot PUT /api/transactions/...`, together with an
+`X-Powered-By: Express` response header, means the old Node service is still
+running. The frontend can show the edit form while this backend has no update
+route. Retrying or redeploying only Vercel will not fix it.
+
+Deploy the merged `main` branch to the **existing** Render API service using
+the Docker settings above. Verify the runtime is Docker rather than Node and
+inspect the latest deployment logs; a failed replacement can leave the old
+Express instance serving traffic. Keep the existing service URL, `MONGO_URI`,
+and `JWT_SECRET`. Do not create a replacement database or service to fix this.
+
+Run the smoke script after the deployment is Live. It rejects the old Express
+runtime, checks Spring health, and verifies that CORS allows edit requests.
+Then reopen the edit form and save; a successful update returns the transaction
+as JSON with its original `_id`.
+
 ## Recovery
 
 For startup failures, inspect logs for missing variables, Atlas network rules,
