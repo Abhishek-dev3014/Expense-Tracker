@@ -87,7 +87,7 @@ Base URL: `http://localhost:5001`. Authentication returns `{ "token": "..." }`; 
 | Readiness | `GET /api/health`, `GET /actuator/health` |
 | Authentication | `POST /api/auth/signup`, `POST /api/auth/login`, `GET /api/auth/profile`, `POST /api/auth/complete-tutorial` |
 | Categories | `GET /api/categories?type=expense`, `POST /api/categories` |
-| Transactions | `GET /api/transactions`, `POST /api/income`, `POST /api/expense`, `DELETE /api/transactions/{id}` |
+| Transactions | `GET /api/transactions`, `POST /api/income`, `POST /api/expense`, `PUT/DELETE /api/transactions/{id}` |
 | Import | `POST /api/transactions/batch`; `/api/batch` retained as an alias |
 | Overview | `GET /api/dashboard?page=1` |
 | Budget | `GET /api/budget`, `POST /api/budget` |
@@ -101,6 +101,8 @@ Base URL: `http://localhost:5001`. Authentication returns `{ "token": "..." }`; 
 Transaction queries accept `page`, `limit` (1–100), literal `search`, exact `category`, `type`, `startDate`, and `endDate`. Date-only end filters include the whole UTC day; report and budget months use `APP_TIME_ZONE` with an exclusive next-month boundary. Import validates the entire payload before inserting and limits batches to 1,000 items. Posted amounts must be positive, with at most two decimal places; expenses are stored as negative amounts.
 
 Recurring processing retains the existing behavior of processing one due occurrence per schedule per request. A deterministic transaction ObjectId prevents duplicate inserts across concurrent processors and crash/retry scenarios. An atomic compare-and-set advances the occurrence. Paused items are excluded. Month/year progression clamps to valid calendar dates. It is request-driven, as before; no unsolicited scheduler is added.
+
+Transaction updates accept `title`, a positive `amount`, `category`, and an ISO `date`. Only the owner can edit a transaction. Updates preserve its type and existing splits; the amount cannot be reduced below the split total. A blank expense category requests automatic classification.
 
 ## Existing-data migration and deployment
 

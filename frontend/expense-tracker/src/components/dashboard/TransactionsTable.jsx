@@ -9,6 +9,7 @@ import {
   Coffee,
   Car,
   House,
+  Pencil,
 } from "lucide-react"
 const icons = {
   Food: Coffee,
@@ -27,6 +28,7 @@ export default function TransactionsTable({
   title,
   subtitle,
   headingAction,
+  onEdit,
 }) {
   return (
     <section className="panel">
@@ -63,6 +65,7 @@ export default function TransactionsTable({
                 <th className="optional-column">Category</th>
                 <th className="optional-column">Date</th>
                 <th className="amount">Amount</th>
+                {onEdit && <th><span className="sr-only">Actions</span></th>}
               </tr>
             </thead>
             <tbody>
@@ -112,6 +115,19 @@ export default function TransactionsTable({
                         maximumFractionDigits: 2,
                       })}
                     </td>
+                    {onEdit && (
+                      <td>
+                        <button
+                          type="button"
+                          className="icon-button"
+                          onClick={() => onEdit(tx)}
+                          aria-label={`Edit ${tx.title || "transaction"}`}
+                          title="Edit transaction"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 )
               })}

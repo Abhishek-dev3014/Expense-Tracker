@@ -306,6 +306,145 @@ class ApiIntegrationTest {
     }
 
     @Test
+    void editsPersistInListsAndDashboardWithoutCreatingTransactions() throws Exception {
+        String token = signup("editor@example.com");
+        String date = YearMonth.now(ZoneOffset.UTC).atDay(1).toString();
+        var original = expense(token, "Coffee", "Food", 100, "2025-01-01");
+        String id = original.get("_id").asString();
+        var updated =
+                call(
+                        put("/api/transactions/" + id),
+                        token,
+                        Map.of(
+                                "title",
+                                "  Train pass  ",
+                                "amount",
+                                "250.75",
+                                "category",
+                                "Transport",
+                                "date",
+                                date),
+                        200);
+        assertThat(updated.get("_id").asString()).isEqualTo(id);
+        assertThat(updated.get("title").asString()).isEqualTo("Train pass");
+        assertThat(updated.get("amount").decimalValue()).isEqualByComparingTo("-250.75");
+        assertThat(updated.get("category").asString()).isEqualTo("Transport");
+        assertThat(updated.get("date").asString()).isEqualTo(date + "T00:00:00Z");
+        assertThat(updated.get("type").asString()).isEqualTo("expense");
+        var listed = call(get("/api/transactions").param("search", "Train pass"), token, null, 200);
+        assertThat(listed.get("total").asInt()).isEqualTo(1);
+        assertThat(listed.get("transactions").get(0).get("amount").decimalValue())
+                .isEqualByComparingTo("-250.75");
+        var dashboard = call(get("/api/dashboard"), token, null, 200);
+        assertThat(dashboard.get("allTransactions").size()).isEqualTo(1);
+        assertThat(dashboard.get("allTransactions").get(0).get("amount").decimalValue())
+                .isEqualByComparingTo("-250.75");
+        var report =
+                call(
+                        get("/api/reports/monthly")
+                                .param(
+                                        "month",
+                                        String.valueOf(
+                                                YearMonth.now(ZoneOffset.UTC).getMonthValue()))
+                                .param(
+                                        "year",
+                                        String.valueOf(YearMonth.now(ZoneOffset.UTC).getYear())),
+                        token,
+                        null,
+                        200);
+        assertThat(report.get("expense").decimalValue()).isEqualByComparingTo("250.75");
+        var income =
+                call(
+                        post("/api/income"),
+                        token,
+                        Map.of("title", "Salary", "amount", 1000, "date", date),
+                        201);
+        var editedIncome =
+                call(
+                        put("/api/transactions/" + income.get("_id").asString()),
+                        token,
+                        Map.of(
+                                "title",
+                                "Salary corrected",
+                                "amount",
+                                2000,
+                                "category",
+                                "Salary",
+                                "date",
+                                date),
+                        200);
+        assertThat(editedIncome.get("amount").asInt()).isEqualTo(2000);
+        assertThat(editedIncome.get("type").asString()).isEqualTo("income");
+        assertThat(call(get("/api/transactions"), token, null, 200).get("total").asInt())
+                .isEqualTo(2);
+    }
+
+    @Test
+    void editsRequireOwnershipAndValidDataAndPreserveSplits() throws Exception {
+        String alice = signup("alice@example.com"), bob = signup("bob@example.com");
+        String id = expense(alice, "Dinner", "Food", 100, "2026-01-01").get("_id").asString();
+        var payload =
+                Map.of(
+                        "title",
+                        "Updated dinner",
+                        "amount",
+                        120,
+                        "category",
+                        "Food",
+                        "date",
+                        "2026-01-02");
+        call(put("/api/transactions/" + id), null, payload, 401);
+        call(put("/api/transactions/" + id), bob, payload, 404);
+        call(put("/api/transactions/" + new ObjectId()), alice, payload, 404);
+        call(put("/api/transactions/bad-id"), alice, payload, 400);
+        for (var invalid :
+                List.of(
+                        Map.of("title", "", "amount", 120),
+                        Map.of("title", "Invalid", "amount", 0),
+                        Map.of("title", "Invalid", "amount", -1),
+                        Map.of("title", "Invalid", "amount", "1.001"),
+                        Map.of("title", "Invalid", "amount", 120, "date", "broken"),
+                        Map.of("title", "Invalid", "amount", 120, "type", "income"))) {
+            call(put("/api/transactions/" + id), alice, invalid, 400);
+        }
+        assertThat(
+                        call(get("/api/transactions"), alice, null, 200)
+                                .get("transactions")
+                                .get(0)
+                                .get("title")
+                                .asString())
+                .isEqualTo("Dinner");
+        call(
+                post("/api/splits/split/" + id),
+                alice,
+                Map.of("splits", List.of(Map.of("name", "Bob", "amount", 40))),
+                200);
+        call(post("/api/splits/settle/" + id + "/Bob"), alice, Map.of(), 200);
+        call(put("/api/transactions/" + id), alice, Map.of("title", "Dinner", "amount", 30), 400);
+        var updated = call(put("/api/transactions/" + id), alice, payload, 200);
+        assertThat(updated.get("splitDetails").get(0).get("amount").asInt()).isEqualTo(40);
+        assertThat(updated.get("splitDetails").get(0).get("status").asString())
+                .isEqualTo("settled");
+    }
+
+    @Test
+    void editingCanAutoDetectCategoryAndPreservesDateWhenOmitted() throws Exception {
+        String token = signup("editor@example.com");
+        String id =
+                expense(token, "Old title", "Food", 100, "2026-01-01T18:30:00Z")
+                        .get("_id")
+                        .asString();
+        var updated =
+                call(
+                        put("/api/transactions/" + id),
+                        token,
+                        Map.of("title", "New title", "amount", 150, "category", ""),
+                        200);
+        assertThat(updated.get("category").asString()).isEqualTo("General");
+        assertThat(updated.get("date").asString()).isEqualTo("2026-01-01T18:30:00Z");
+    }
+
+    @Test
     void importSupportsBothPathsAndValidatesWholeBatchBeforeWriting() throws Exception {
         String token = signup("owner@example.com");
         var payload =

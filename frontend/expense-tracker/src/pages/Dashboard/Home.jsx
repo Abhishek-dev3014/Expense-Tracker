@@ -21,6 +21,7 @@ import { BASE_URL } from "../../utils/apiPaths"
 import { buildOverview, expensePage, formatCurrency } from "../../utils/finance"
 import StatsGrid from "../../components/dashboard/StatsGrid"
 import TransactionsTable from "../../components/dashboard/TransactionsTable"
+import EditTransactionModal from "../../components/dashboard/EditTransactionModal"
 import CategoryTransactionsModal from "../../components/dashboard/CategoryTransactionsModal"
 import UpcomingBills from "../../components/dashboard/UpcomingBills"
 import BudgetHealthCard from "../../components/dashboard/BudgetHealthCard"
@@ -51,6 +52,7 @@ export default function Home() {
   const [error, setError] = useState("")
   const [revision, setRevision] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState(null)
+  const [editingTransaction, setEditingTransaction] = useState(null)
   const requestPage = expensesOnly ? 1 : page
   useEffect(() => {
     const refresh = () => setRevision((value) => value + 1)
@@ -360,6 +362,7 @@ export default function Home() {
       </div>
       <div className="overview-grid" style={{ alignItems: "start" }}>
         <TransactionsTable
+          onEdit={setEditingTransaction}
           expensesOnly={expensesOnly}
           transactions={activity.transactions}
           page={activity.currentPage}
@@ -390,6 +393,13 @@ export default function Home() {
           category={selectedCategory}
           month={data.spendingMonth}
           onClose={() => setSelectedCategory(null)}
+        />
+      )}
+      {editingTransaction && (
+        <EditTransactionModal
+          key={editingTransaction._id}
+          transaction={editingTransaction}
+          onClose={() => setEditingTransaction(null)}
         />
       )}
     </div>

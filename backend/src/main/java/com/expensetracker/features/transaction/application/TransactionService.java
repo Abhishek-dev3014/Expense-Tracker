@@ -10,6 +10,7 @@ import com.expensetracker.features.transaction.infrastructure.TransactionReposit
 import com.expensetracker.integrations.ml.CategoryPredictionClient;
 import com.expensetracker.shared.error.ApiException;
 import com.expensetracker.shared.time.Dates;
+import java.math.BigDecimal;
 import java.time.*;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
@@ -78,6 +79,36 @@ public class TransactionService {
         return transactions
                 .findByIdAndUser(id, user)
                 .orElseThrow(() -> ApiException.notFound("Transaction"));
+    }
+
+    public Transaction update(String user, String id, CreateTransactionRequest input) {
+        var tx = owned(user, id);
+        if (input.type() != null && !input.type().equals(tx.getType()))
+            throw ApiException.badRequest("The transaction type cannot be changed.");
+        if (tx.getSplitDetails() != null) {
+            var splitTotal =
+                    tx.getSplitDetails().stream()
+                            .map(SplitDetail::getAmount)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (splitTotal.compareTo(input.amount()) > 0)
+                throw ApiException.badRequest(
+                        "The amount cannot be less than existing splits. Update the splits first.");
+        }
+        var updated = make(user, tx.getType(), input);
+        if ("expense".equals(tx.getType())
+                && (input.category() == null || input.category().isBlank())) {
+            var result = prediction.predict(input.title());
+            updated.setCategory(result.category());
+            updated.setAiConfidence(result.confidence());
+        } else if (Objects.equals(updated.getCategory(), tx.getCategory())) {
+            updated.setAiConfidence(tx.getAiConfidence());
+        }
+        tx.setTitle(updated.getTitle());
+        tx.setAmount(updated.getAmount());
+        tx.setCategory(updated.getCategory());
+        tx.setAiConfidence(updated.getAiConfidence());
+        tx.setDate(Dates.parse(input.date(), tx.getDate()));
+        return transactions.save(tx);
     }
 
     public Transaction updateSplits(String user, String id, List<SplitDetail> splits) {

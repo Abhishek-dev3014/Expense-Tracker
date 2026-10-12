@@ -62,6 +62,14 @@ public class TransactionController {
         return Map.of("message", count + " transactions imported successfully", "count", count);
     }
 
+    @PutMapping("/transactions/{id}")
+    public Transaction update(
+            @AuthenticationPrincipal User user,
+            @PathVariable @Pattern(regexp = "[a-fA-F0-9]{24}") String id,
+            @Valid @RequestBody CreateTransactionRequest input) {
+        return transactions.update(user.getId(), id, input);
+    }
+
     @DeleteMapping("/transactions/{id}")
     public Map<String, String> delete(
             @AuthenticationPrincipal User user,
