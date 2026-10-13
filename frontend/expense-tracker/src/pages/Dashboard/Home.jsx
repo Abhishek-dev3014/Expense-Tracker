@@ -26,7 +26,7 @@ import CategoryTransactionsModal from "../../components/dashboard/CategoryTransa
 import UpcomingBills from "../../components/dashboard/UpcomingBills"
 import BudgetHealthCard from "../../components/dashboard/BudgetHealthCard"
 
-const COLORS = ["#4877ed", "#178577", "#e5a14f", "#8b78bd", "#cf7f8c"]
+const COLORS = ["#49765a", "#b5a6ca", "#d4ad72", "#a6bc87", "#dba99a"]
 const ChartTooltip = ({ active, payload, label }) =>
   active && payload?.length ? (
     <div className="chart-tooltip">
@@ -34,7 +34,7 @@ const ChartTooltip = ({ active, payload, label }) =>
       {payload.map((item) => (
         <p
           key={item.dataKey}
-          style={{ color: item.dataKey === "income" ? "#178577" : "#a96c24" }}
+          style={{ color: item.dataKey === "income" ? "#39795a" : "#697d41" }}
         >
           {item.name}: {formatCurrency(item.value)}
         </p>
@@ -135,7 +135,7 @@ export default function Home() {
     <div className="space-y-5" aria-busy={loading}>
       <StatsGrid data={data} expensesOnly={expensesOnly} />
       <div className="overview-grid">
-        <section className="panel">
+        <section className="panel cashflow-panel">
           <div className="panel-heading">
             <div>
               <h2>{expensesOnly ? "Your spending over time" : "Cash flow"}</h2>
@@ -148,12 +148,12 @@ export default function Home() {
             <div className="chart-legend">
               {!expensesOnly && (
                 <span className="legend-key">
-                  <i className="dot" style={{ background: "#178577" }} />
+                  <i className="dot" style={{ background: "#39795a" }} />
                   Income
                 </span>
               )}
               <span className="legend-key">
-                <i className="dot" style={{ background: "#e5a14f" }} />
+                <i className="dot" style={{ background: "#bbcb97" }} />
                 Expenses
               </span>
             </div>
@@ -168,20 +168,20 @@ export default function Home() {
                 >
                   <CartesianGrid
                     vertical={false}
-                    stroke="#eaf0f6"
+                    stroke="#edf0e7"
                     strokeDasharray="3 4"
                   />
                   <XAxis
                     dataKey="month"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#6a7b95", fontSize: 12 }}
+                    tick={{ fill: "#69765f", fontSize: 12 }}
                     dy={8}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#6a7b95", fontSize: 12 }}
+                    tick={{ fill: "#69765f", fontSize: 12 }}
                     tickFormatter={(v) =>
                       v >= 100000
                         ? `₹${v / 100000}L`
@@ -193,25 +193,25 @@ export default function Home() {
                   />
                   <Tooltip
                     content={<ChartTooltip />}
-                    cursor={{ fill: "#f4f7fc" }}
+                    cursor={{ fill: "#f4f6ee" }}
                   />
                   {!expensesOnly && (
                     <Bar
                       isAnimationActive={false}
                       name="Income"
                       dataKey="income"
-                      fill="#178577"
-                      radius={[4, 4, 0, 0]}
-                      maxBarSize={23}
+                      fill="#39795a"
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={28}
                     />
                   )}
                   <Bar
                     isAnimationActive={false}
                     name="Expenses"
                     dataKey="expense"
-                    fill="#e5a14f"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={23}
+                    fill="#bbcb97"
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={28}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -265,7 +265,7 @@ export default function Home() {
               <h2>Spending breakdown</h2>
               <p>Spending by category · This month</p>
             </div>
-            <PieChart size={17} color="#6f83a2" />
+            <PieChart size={17} color="#738065" />
           </div>
           {categories.length ? (
             <>
@@ -384,7 +384,7 @@ export default function Home() {
       <div className="overview-footer">
         <span
           className="dot"
-          style={{ background: "#3265df", width: 5, height: 5 }}
+          style={{ background: "#285c44", width: 5, height: 5 }}
         />
         All amounts in INR · Monthly figures use transaction dates
       </div>

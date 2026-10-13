@@ -112,6 +112,15 @@ export default function Transactions() {
   }
   return (
     <section className="panel">
+      <div className="ledger-heading">
+        <div>
+          <span className="section-kicker">THE DETAILS</span>
+          <h2>Your money journal</h2>
+        </div>
+        <span className="ledger-count" role="status">
+          {loading ? "Loading…" : `${total} transactions`}
+        </span>
+      </div>
       <div className="transaction-toolbar">
         <div className="transaction-search">
           <Search size={16} />
@@ -227,12 +236,13 @@ export default function Transactions() {
                     <div className="flex justify-end">
                       <button
                         type="button"
-                        className="icon-button"
+                        className="icon-button transaction-edit"
                         onClick={() => setEditingTransaction(tx)}
                         aria-label={`Edit ${tx.title || "transaction"}`}
                         title="Edit transaction"
                       >
                         <Pencil size={14} />
+                        <span>Edit</span>
                       </button>
                       {tx.type === "expense" && (
                         <button

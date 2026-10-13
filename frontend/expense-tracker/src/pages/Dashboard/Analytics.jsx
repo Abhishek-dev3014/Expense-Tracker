@@ -26,7 +26,7 @@ import {
   PieChart as PieIcon,
 } from "lucide-react"
 
-const COLORS = ["#4877ed", "#178577", "#e5a14f", "#8b78bd", "#cf7f8c"]
+const COLORS = ["#49765a", "#b5a6ca", "#d4ad72", "#a6bc87", "#dba99a"]
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -258,14 +258,14 @@ const Analytics = () => {
               <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-wide text-emerald-800 bg-emerald-50">
                 <div
                   className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: "#178577" }}
+                  style={{ background: "#39795a" }}
                 />{" "}
                 Income
               </div>
               <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-wide text-emerald-800 bg-emerald-50">
                 <div
                   className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: "#e5a14f" }}
+                  style={{ background: "#bbcb97" }}
                 />{" "}
                 Expense
               </div>
@@ -280,12 +280,12 @@ const Analytics = () => {
               >
                 <CartesianGrid
                   strokeDasharray="10 10"
-                  stroke="#e7ecf4"
+                  stroke="#e6e9e0"
                   vertical={false}
                 />
                 <XAxis
                   dataKey="month"
-                  stroke="#4B5563"
+                  stroke="#68756d"
                   fontSize={10}
                   fontWeight="bold"
                   tickLine={false}
@@ -293,7 +293,7 @@ const Analytics = () => {
                   dy={15}
                 />
                 <YAxis
-                  stroke="#4B5563"
+                  stroke="#68756d"
                   fontSize={10}
                   fontWeight="bold"
                   tickLine={false}
@@ -304,17 +304,17 @@ const Analytics = () => {
                 />
                 <Tooltip
                   content={<CustomTooltip />}
-                  cursor={{ fill: "#f3f6fc" }}
+                  cursor={{ fill: "#f5f7ef" }}
                 />
                 <Bar
                   dataKey="income"
-                  fill="#178577"
+                  fill="#39795a"
                   radius={[8, 8, 0, 0]}
                   barSize={28}
                 />
                 <Bar
                   dataKey="expense"
-                  fill="#e5a14f"
+                  fill="#bbcb97"
                   radius={[8, 8, 0, 0]}
                   barSize={28}
                 />
@@ -413,25 +413,25 @@ const Analytics = () => {
             >
               <defs>
                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#4877ed" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#4877ed" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#49765a" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#49765a" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid
                 strokeDasharray="10 10"
-                stroke="#e7ecf4"
+                stroke="#e6e9e0"
                 vertical={false}
               />
               <XAxis
                 dataKey="day"
-                stroke="#4B5563"
+                stroke="#68756d"
                 fontSize={10}
                 fontWeight="bold"
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
-                stroke="#4B5563"
+                stroke="#68756d"
                 fontSize={10}
                 fontWeight="bold"
                 tickLine={false}
@@ -441,7 +441,7 @@ const Analytics = () => {
               <Area
                 type="monotone"
                 dataKey="value"
-                stroke="#4877ed"
+                stroke="#49765a"
                 strokeWidth={4}
                 fillOpacity={1}
                 fill="url(#colorValue)"

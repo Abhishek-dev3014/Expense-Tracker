@@ -18,7 +18,10 @@ const StatCard = ({
         maximumFractionDigits: 0,
       }).format(value || 0)}
     </div>
-    <div className="stat-foot">{subtitle}</div>
+    <div className="stat-foot">
+      <span className="stat-indicator" aria-hidden="true" />
+      {subtitle}
+    </div>
   </div>
 )
 export default StatCard

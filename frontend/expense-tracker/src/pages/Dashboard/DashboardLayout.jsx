@@ -194,12 +194,12 @@ export default function DashboardLayout() {
         <main className="main-scroller" id="main-content">
           <div className="page-header">
             <div>
-              <h1>
+              <div className="page-kicker">
                 {!section
-                  ? `Welcome back${user?.name ? `, ${user.name.split(" ")[0]}` : ""}`
-                  : title}
-                {!section && <span style={{ color: "#3265df" }}>.</span>}
-              </h1>
+                  ? `WELCOME BACK${user?.name ? `, ${user.name.split(" ")[0].toUpperCase()}` : ""}`
+                  : "YOUR PERSONAL FINANCE SPACE"}
+              </div>
+              <h1>{!section ? "Your money, at a glance." : title}</h1>
               <p>
                 {!section && expensesOnly
                   ? "Keep track of your spending. No income entry needed."
