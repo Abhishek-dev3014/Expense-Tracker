@@ -119,12 +119,13 @@ export default function TransactionsTable({
                       <td>
                         <button
                           type="button"
-                          className="icon-button"
+                          className="icon-button transaction-edit"
                           onClick={() => onEdit(tx)}
                           aria-label={`Edit ${tx.title || "transaction"}`}
                           title="Edit transaction"
                         >
                           <Pencil size={14} />
+                          <span>Edit</span>
                         </button>
                       </td>
                     )}

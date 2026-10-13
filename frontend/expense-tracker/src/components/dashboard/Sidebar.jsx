@@ -64,8 +64,8 @@ export default function Sidebar({ mobile = false, onClose }) {
       <div className="workspace-label">
         <Wallet size={17} />
         <div>
-          <strong>Personal workspace</strong>
-          <span>Personal finance</span>
+          <strong>My workspace</strong>
+          <span>Make money make sense.</span>
         </div>
       </div>
       <nav
@@ -97,8 +97,11 @@ export default function Sidebar({ mobile = false, onClose }) {
       </nav>
       <div className="sidebar-bottom">
         <div className="sidebar-note">
-          <strong>Your monthly plan</strong>
-          <p>Set spending limits that work for you.</p>
+          <div className="sidebar-note-icon">
+            <Target size={20} />
+          </div>
+          <strong>A little planning. More living.</strong>
+          <p>Give every rupee a purpose with a monthly budget.</p>
           <Link to="/dashboard/budget" onClick={onClose}>
             Manage budgets <ArrowUpRight size={13} />
           </Link>

@@ -5,7 +5,7 @@ const Brand = () => (
     <span className="brand-mark">
       <ChartNoAxesCombined size={21} strokeWidth={2.4} />
     </span>
-    fintrack<span style={{ color: "#4877ed", marginLeft: -7 }}>.</span>
+    fintrack<span className="brand-period">.</span>
   </Link>
 )
 export default Brand
