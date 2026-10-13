@@ -25,6 +25,7 @@ import EditTransactionModal from "../../components/dashboard/EditTransactionModa
 import CategoryTransactionsModal from "../../components/dashboard/CategoryTransactionsModal"
 import UpcomingBills from "../../components/dashboard/UpcomingBills"
 import BudgetHealthCard from "../../components/dashboard/BudgetHealthCard"
+import useReducedMotion from "../../hooks/useReducedMotion"
 
 const COLORS = ["#49765a", "#b5a6ca", "#d4ad72", "#a6bc87", "#dba99a"]
 const ChartTooltip = ({ active, payload, label }) =>
@@ -43,6 +44,9 @@ const ChartTooltip = ({ active, payload, label }) =>
   ) : null
 
 export default function Home() {
+  const reducedMotion = useReducedMotion()
+  const [chartMonths, setChartMonths] = useState(6)
+  const [visibleSeries, setVisibleSeries] = useState({ income: true, expense: true })
   const { expensesOnly = false } = useOutletContext() || {}
   const { token } = useAuth()
   const authToken = token || localStorage.getItem("token")
@@ -120,8 +124,17 @@ export default function Home() {
       </div>
     )
   const { monthlyIncome, monthlyExpense, months, categories } = data
+  const chartData = months.slice(-chartMonths)
+  const toggleSeries = (series) => {
+    setVisibleSeries((current) => {
+      const other = series === "income" ? "expense" : "income"
+      return current[series] && !current[other]
+        ? current
+        : { ...current, [series]: !current[series] }
+    })
+  }
   const net = monthlyIncome - monthlyExpense
-  const hasChartData = months.some(
+  const hasChartData = chartData.some(
     (month) => month.expense || (!expensesOnly && month.income),
   )
   const activity = expensesOnly
@@ -141,28 +154,56 @@ export default function Home() {
               <h2>{expensesOnly ? "Your spending over time" : "Cash flow"}</h2>
               <p>
                 {expensesOnly
-                  ? "Monthly expenses over the last 6 months"
-                  : "Your cash flow over the last 6 months"}
+                  ? `Monthly expenses over the last ${chartMonths} months`
+                  : `Your cash flow over the last ${chartMonths} months`}
               </p>
             </div>
-            <div className="chart-legend">
+            <div className="chart-range" role="group" aria-label="Cash flow time range">
+              {[3, 6].map((range) => (
+                <button
+                  key={range}
+                  type="button"
+                  aria-pressed={chartMonths === range}
+                  aria-label={`Last ${range} months`}
+                  onClick={() => setChartMonths(range)}
+                >
+                  {range}M
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="chart-controls">
+            <div className="chart-legend" role="group" aria-label="Visible cash flow series">
               {!expensesOnly && (
-                <span className="legend-key">
+                <button
+                  type="button"
+                  className="legend-key legend-toggle"
+                  aria-pressed={visibleSeries.income}
+                  disabled={visibleSeries.income && !visibleSeries.expense}
+                  onClick={() => toggleSeries("income")}
+                >
                   <i className="dot" style={{ background: "#39795a" }} />
                   Income
-                </span>
+                </button>
               )}
-              <span className="legend-key">
+              <button
+                type="button"
+                className="legend-key legend-toggle"
+                aria-pressed={expensesOnly || visibleSeries.expense}
+                disabled={expensesOnly || (visibleSeries.expense && !visibleSeries.income)}
+                onClick={() => toggleSeries("expense")}
+              >
                 <i className="dot" style={{ background: "#bbcb97" }} />
                 Expenses
-              </span>
+              </button>
             </div>
+            {!expensesOnly && <span className="chart-hint">Select a legend to filter</span>}
           </div>
           {hasChartData ? (
             <div className="chart-container">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={months}
+                  data={chartData}
                   barGap={5}
                   margin={{ top: 5, right: 12, left: 0, bottom: 0 }}
                 >
@@ -197,7 +238,9 @@ export default function Home() {
                   />
                   {!expensesOnly && (
                     <Bar
-                      isAnimationActive={false}
+                      hide={!visibleSeries.income}
+                      isAnimationActive={!reducedMotion}
+                      animationDuration={650}
                       name="Income"
                       dataKey="income"
                       fill="#39795a"
@@ -206,7 +249,9 @@ export default function Home() {
                     />
                   )}
                   <Bar
-                    isAnimationActive={false}
+                    hide={!expensesOnly && !visibleSeries.expense}
+                    isAnimationActive={!reducedMotion}
+                    animationDuration={650}
                     name="Expenses"
                     dataKey="expense"
                     fill="#bbcb97"

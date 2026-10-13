@@ -11,7 +11,7 @@ const StatCard = ({
       <span>{title}</span>
       <span className="stat-icon">{icon}</span>
     </div>
-    <div className="stat-value">
+    <div className="stat-value" key={value}>
       {new Intl.NumberFormat("en-IN", {
         style: "currency",
         currency: "INR",

@@ -106,10 +106,16 @@ export default function DashboardLayout() {
       }
     }
     const oldOverflow = document.body.style.overflow
+    const desktop = window.matchMedia("(min-width: 1024px)")
+    const closeOnDesktop = (event) => {
+      if (event.matches) setSidebarOpen(false)
+    }
     document.body.style.overflow = "hidden"
     document.addEventListener("keydown", keydown)
+    desktop.addEventListener("change", closeOnDesktop)
     return () => {
       document.removeEventListener("keydown", keydown)
+      desktop.removeEventListener("change", closeOnDesktop)
       document.body.style.overflow = oldOverflow
       previousFocus?.focus()
     }
