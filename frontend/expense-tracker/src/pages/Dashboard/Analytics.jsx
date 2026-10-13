@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "../../context/AuthContext"
 import { BASE_URL } from "../../utils/apiPaths"
+import useReducedMotion from "../../hooks/useReducedMotion"
 import {
   BarChart,
   Bar,
@@ -60,6 +61,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 const Analytics = () => {
+  const reducedMotion = useReducedMotion()
   const { token } = useAuth()
   const authToken = token || localStorage.getItem("token")
   const [data, setData] = useState(null)
@@ -307,12 +309,16 @@ const Analytics = () => {
                   cursor={{ fill: "#f5f7ef" }}
                 />
                 <Bar
+                  isAnimationActive={!reducedMotion}
+                  animationDuration={650}
                   dataKey="income"
                   fill="#39795a"
                   radius={[8, 8, 0, 0]}
                   barSize={28}
                 />
                 <Bar
+                  isAnimationActive={!reducedMotion}
+                  animationDuration={650}
                   dataKey="expense"
                   fill="#bbcb97"
                   radius={[8, 8, 0, 0]}
@@ -340,6 +346,8 @@ const Analytics = () => {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
+                  isAnimationActive={!reducedMotion}
+                  animationDuration={650}
                   data={pieData}
                   dataKey="value"
                   innerRadius={75}
@@ -439,6 +447,8 @@ const Analytics = () => {
               />
               <Tooltip content={<CustomTooltip />} />
               <Area
+                isAnimationActive={!reducedMotion}
+                animationDuration={650}
                 type="monotone"
                 dataKey="value"
                 stroke="#49765a"
