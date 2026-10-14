@@ -34,6 +34,11 @@ export function buildOverview(data, now = new Date()) {
     }
   })
   const categories = new Map()
+  const days = Array.from(
+    { length: new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() },
+    (_, index) => ({ month: String(index + 1), income: 0, expense: 0 }),
+  )
+  let todayExpense = 0, monthlyExpenseCount = 0
   let monthlyIncome = 0,
     monthlyExpense = 0
   for (const tx of transactions) {
@@ -50,8 +55,11 @@ export function buildOverview(data, now = new Date()) {
       date.getMonth() === now.getMonth() &&
       date.getFullYear() === now.getFullYear()
     ) {
+      days[date.getDate() - 1][income ? "income" : "expense"] += amount
       if (income) monthlyIncome += amount
       else {
+        monthlyExpenseCount += 1
+        if (date.getDate() === now.getDate()) todayExpense += amount
         monthlyExpense += amount
         const name = tx.category || "Other"
         const category = categories.get(name) || { name, value: 0, transactions: [] }
@@ -74,6 +82,9 @@ export function buildOverview(data, now = new Date()) {
     monthlyIncome,
     monthlyExpense,
     months,
+    days,
+    todayExpense,
+    monthlyExpenseCount,
     categories: topCategories,
     spendingMonth: now.toLocaleDateString("en-IN", { month: "long", year: "numeric" }),
     averageDailyExpense: monthlyExpense / now.getDate(),

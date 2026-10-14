@@ -9,6 +9,7 @@ import TutorialOverlay from "../../components/dashboard/TutorialOverlay"
 import { BASE_URL } from "../../utils/apiPaths"
 import { useAuth } from "../../context/AuthContext"
 import axios from "axios"
+import toast, { Toaster } from "react-hot-toast"
 
 const pages = {
   "": ["Overview", "Here’s how your finances are looking this month."],
@@ -164,6 +165,7 @@ export default function DashboardLayout() {
       throw new Error(`Could not save your ${type}. Please try again.`)
     setShowIncome(false)
     setShowExpense(false)
+    toast.success(`${type === "income" ? "Income" : "Expense"} added`)
     window.dispatchEvent(new Event("transactions-updated"))
   }
   return (
@@ -197,7 +199,7 @@ export default function DashboardLayout() {
       )}
       <div className="main-content" inert={sidebarOpen ? true : undefined}>
         <Topbar title={title} onOpenSidebar={() => setSidebarOpen(true)} />
-        <main className="main-scroller" id="main-content">
+        <main className={`main-scroller${!section || section === "transactions" ? " tracking-workspace" : ""}`} id="main-content">
           <div className="page-header">
             <div>
               <div className="page-kicker">
@@ -270,11 +272,12 @@ export default function DashboardLayout() {
                 </div>
               }
             >
-              <Outlet context={{ expensesOnly: Boolean(expensesOnly) }} />
+              <Outlet context={{ expensesOnly: Boolean(expensesOnly), onAddExpense: () => setShowExpense(true) }} />
             </Suspense>
           </div>
         </main>
       </div>
+      <Toaster position="bottom-center" toastOptions={{ duration: 3500 }} />
       {showIncome && (
         <AddIncomeModal
           onClose={() => setShowIncome(false)}

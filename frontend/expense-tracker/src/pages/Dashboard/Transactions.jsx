@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { Fragment, useEffect, useState } from "react"
 import {
   Search,
   Trash2,
@@ -13,6 +13,9 @@ import {
   Receipt,
   RefreshCw,
 } from "lucide-react"
+import { useOutletContext, useSearchParams } from "react-router-dom"
+import toast from "react-hot-toast"
+import { PERIODS, transactionParams, transactionDay } from "../../utils/transactionFilters"
 import ImportModal from "../../components/dashboard/ImportModal"
 import SplitModal from "../../components/dashboard/SplitModal"
 import EditTransactionModal from "../../components/dashboard/EditTransactionModal"
@@ -21,7 +24,27 @@ import { BASE_URL } from "../../utils/apiPaths"
 export default function Transactions() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState("")
+  const [filters, setFilters] = useSearchParams()
+  const search = filters.get("search") || ""
+  const type = ["expense", "income"].includes(filters.get("type")) ? filters.get("type") : ""
+  const category = filters.get("category") || ""
+  const period = PERIODS[filters.get("period")] ? filters.get("period") : "all"
+  const [categories, setCategories] = useState([])
+  const [categoryError, setCategoryError] = useState(false)
+  const { onAddExpense } = useOutletContext() || {}
+  const hasFilters = Boolean(search || type || category || period !== "all")
+  const changeFilter = (key, value) => {
+    if ({ search, type, category, period }[key] === value) return
+    setLoading(true)
+    setPage(1)
+    setFilters((current) => {
+      const next = new URLSearchParams(current)
+      if (value) next.set(key, value)
+      else next.delete(key)
+      return next
+    }, { replace: true })
+  }
+  const clearFilters = () => { setLoading(true); setPage(1); setFilters({}, { replace: true }) }
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
@@ -31,6 +54,20 @@ export default function Transactions() {
   const [editingTransaction, setEditingTransaction] = useState(null)
   const [revision, setRevision] = useState(0)
   const refresh = () => setRevision((value) => value + 1)
+  useEffect(() => {
+    const controller = new AbortController()
+    Promise.all(["expense", "income"].map(async (kind) => {
+      const response = await fetch(`${BASE_URL}/api/categories?type=${kind}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }, signal: controller.signal,
+      })
+      if (!response.ok) throw new Error()
+      return (await response.json()).categories || []
+    })).then((lists) => {
+      setCategories([...new Set(lists.flat())])
+      setCategoryError(false)
+    }).catch(() => { if (!controller.signal.aborted) setCategoryError(true) })
+    return () => controller.abort()
+  }, [revision])
   useEffect(() => {
     const refresh = () => setRevision((value) => value + 1)
     window.addEventListener("transactions-updated", refresh)
@@ -42,7 +79,7 @@ export default function Transactions() {
       setLoading(true)
       setError("")
       try {
-        const params = new URLSearchParams({ page: String(page), search })
+        const params = transactionParams({ page, search, type, category, period })
         const response = await fetch(`${BASE_URL}/api/transactions?${params}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           signal: controller.signal,
@@ -54,7 +91,7 @@ export default function Transactions() {
         const data = await response.json()
         setTransactions(data.transactions || [])
         setTotalPages(Math.max(1, data.totalPages || 1))
-        setTotal(data.total ?? data.transactions.length)
+        setTotal(data.total ?? data.transactions?.length ?? 0)
         if (page > Math.max(1, data.totalPages || 1))
           setPage(Math.max(1, data.totalPages || 1))
       } catch (err) {
@@ -67,7 +104,7 @@ export default function Transactions() {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [page, search, revision])
+  }, [page, search, type, category, period, revision])
   const remove = async (tx) => {
     if (
       !window.confirm(
@@ -82,7 +119,8 @@ export default function Transactions() {
       })
       if (!response.ok)
         throw new Error("Could not delete this transaction. Please try again.")
-      refresh()
+      toast.success("Transaction deleted")
+      window.dispatchEvent(new Event("transactions-updated"))
     } catch (err) {
       setError(err.message)
     }
@@ -110,15 +148,19 @@ export default function Transactions() {
     link.click()
     URL.revokeObjectURL(url)
   }
+  const categoryOptions = [...new Set([
+    "Food", "Transport", "Shopping", "Rent", "Utilities", "Entertainment", "Health", "Education", "Other", "General",
+    "Salary", "Freelance", "Business", "Investment", ...categories, ...transactions.map((tx) => tx.category).filter(Boolean), ...(category ? [category] : []),
+  ])].sort((a, b) => a.localeCompare(b))
   return (
-    <section className="panel">
+    <section className="panel transaction-ledger" aria-label="Transaction history" aria-busy={loading}>
       <div className="ledger-heading">
         <div>
-          <span className="section-kicker">THE DETAILS</span>
           <h2>Your money journal</h2>
+          <p className="ledger-description">Find an expense, check the details, or pick up where you left off.</p>
         </div>
         <span className="ledger-count" role="status">
-          {loading ? "Loading…" : `${total} transactions`}
+          {loading ? "Loading…" : `${total} ${total === 1 ? "transaction" : "transactions"}`}
         </span>
       </div>
       <div className="transaction-toolbar">
@@ -126,11 +168,11 @@ export default function Transactions() {
           <Search size={16} />
           <input
             aria-label="Search transactions"
-            placeholder="Search transactions…"
+            placeholder="Search by description…"
+            maxLength={200}
             value={search}
             onChange={(event) => {
-              setSearch(event.target.value)
-              setPage(1)
+              changeFilter("search", event.target.value)
             }}
           />
         </div>
@@ -142,12 +184,33 @@ export default function Transactions() {
           <button
             className="btn"
             onClick={exportPage}
-            disabled={!transactions.length || loading}
+            disabled={!transactions.length || loading || Boolean(error)}
           >
             <Download size={14} />
             Export this page
           </button>
         </div>
+      </div>
+      <div className="ledger-filters">
+        <div className="type-filter" role="group" aria-label="Transaction type">
+          {[["", "All transactions"], ["expense", "Expenses"], ["income", "Income"]].map(([value, label]) => (
+            <button key={value} type="button" aria-pressed={type === value} onClick={() => changeFilter("type", value)}>{label}</button>
+          ))}
+        </div>
+        <div className="ledger-selects">
+          <label><span>When</span><select aria-label="Transaction period" value={period} onChange={(e) => changeFilter("period", e.target.value)}>
+            {Object.entries(PERIODS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select></label>
+          <label><span>Category</span><select aria-label="Transaction category" value={category} onChange={(e) => changeFilter("category", e.target.value)}>
+            <option value="">All categories</option>
+            {categoryOptions.map((name) => <option key={name}>{name}</option>)}
+          </select></label>
+        </div>
+      </div>
+      {categoryError && <p className="filter-notice" role="status">Some saved categories couldn’t load. <button className="text-link" onClick={refresh}>Retry</button></p>}
+      <div className="ledger-results" role="status">
+        <span>{loading ? "Finding transactions…" : error ? "Results unavailable" : `${total} ${total === 1 ? "transaction" : "transactions"}${hasFilters ? (total === 1 ? " matches your filters" : " match your filters") : " recorded"}`} <span aria-hidden="true">·</span> Newest first</span>
+        {hasFilters && <button className="text-link" onClick={clearFilters}>Reset filters</button>}
       </div>
       {error && (
         <div
@@ -170,7 +233,7 @@ export default function Transactions() {
         <div className="empty-state" role="status">
           Loading transactions…
         </div>
-      ) : transactions.length ? (
+      ) : error ? null : transactions.length ? (
         <div className="table-scroll">
           <table className="activity-table">
             <thead>
@@ -185,8 +248,12 @@ export default function Transactions() {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((tx) => (
-                <tr key={tx._id}>
+              {transactions.map((tx, index) => (
+                <Fragment key={tx._id}>
+                {(index === 0 || transactionDay(tx.date) !== transactionDay(transactions[index - 1].date)) && (
+                  <tr className="ledger-date-group"><th colSpan={5} scope="rowgroup">{transactionDay(tx.date)}</th></tr>
+                )}
+                <tr>
                   <td>
                     <span className="transaction-name">
                       <span className="transaction-icon">
@@ -265,6 +332,7 @@ export default function Transactions() {
                     </div>
                   </td>
                 </tr>
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -273,34 +341,33 @@ export default function Transactions() {
         <div className="empty-state">
           <Receipt size={28} />
           <strong>
-            {search ? "No matching transactions" : "No transactions yet"}
+            {hasFilters ? "No matching transactions" : "No transactions yet"}
           </strong>
           <p>
-            {search
-              ? "Try a different description or clear your search."
+            {hasFilters
+              ? "Try another date or category, or reset your filters to see everything."
               : "Add your first income or expense to get started."}
           </p>
-          {search && (
+          {hasFilters ? (
             <button
               className="text-link"
               style={{ marginTop: 12 }}
-              onClick={() => setSearch("")}
+              onClick={clearFilters}
             >
-              Clear search
+              Reset filters
             </button>
-          )}
+          ) : <button className="btn btn-primary empty-action" onClick={onAddExpense}>Add your first expense</button>}
         </div>
       )}
       <div className="table-footer">
         <span>
-          {total} {search ? "matching " : ""}transactions · Page {page} of{" "}
-          {totalPages}
+          {loading ? "Updating…" : error ? "Please retry to load your history" : total ? `Showing ${(page - 1) * 10 + 1}–${(page - 1) * 10 + transactions.length} of ${total} · Page ${page} of ${totalPages}` : "No transactions to show"}
         </span>
         <div className="flex gap-1">
           <button
             className="icon-button"
             aria-label="Previous page"
-            disabled={page <= 1 || loading}
+            disabled={page <= 1 || loading || Boolean(error)}
             onClick={() => setPage(page - 1)}
           >
             <ArrowLeft size={15} />
@@ -308,7 +375,7 @@ export default function Transactions() {
           <button
             className="icon-button"
             aria-label="Next page"
-            disabled={page >= totalPages || loading}
+            disabled={page >= totalPages || loading || Boolean(error)}
             onClick={() => setPage(page + 1)}
           >
             <ArrowRight size={15} />

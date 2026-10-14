@@ -10,6 +10,23 @@ const tx = (date, amount, type, category = "Food") => ({
   category,
 })
 
+test("daily spending counts today's expenses only and reconciles with monthly totals", () => {
+  const data = buildOverview({ allTransactions: [
+    tx([2026, 0, 15], 120, "expense"),
+    tx([2026, 0, 15], 500, "income"),
+    tx([2026, 0, 14], -80, "expense"),
+    tx([2025, 11, 15], 250, "expense"),
+    tx([2025, 0, 15], 100, "expense"),
+  ] }, now)
+  assert.equal(data.todayExpense, 120)
+  assert.equal(data.monthlyExpenseCount, 2)
+  assert.equal(data.days.length, 31)
+  assert.equal(data.days[14].income, 500)
+  assert.equal(data.days[14].expense, 120)
+  assert.equal(data.days.reduce((sum, day) => sum + day.expense, 0), data.monthlyExpense)
+  assert.equal(buildOverview({}, new Date(2024, 1, 15)).days.length, 29)
+})
+
 test("expense pages filter income before pagination and preserve transaction order", () => {
   const transactions = Array.from({ length: 14 }, (_, index) => ({
     _id: index,

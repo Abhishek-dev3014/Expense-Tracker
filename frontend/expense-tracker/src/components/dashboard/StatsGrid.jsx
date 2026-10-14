@@ -30,9 +30,9 @@ export default function StatsGrid({ data, expensesOnly = false }) {
           icon={<CalendarDays />}
         />
         <StatCard
-          title="Total expenses"
-          value={data.totalExpense}
-          subtitle="Across all your recorded expenses"
+          title="Spent today"
+          value={data.todayExpense}
+          subtitle="Expenses dated today"
           icon={<Receipt />}
         />
       </section>
@@ -40,7 +40,7 @@ export default function StatsGrid({ data, expensesOnly = false }) {
   return (
     <section className="stats-grid" aria-label="Financial summary">
       <StatCard
-        title="Total balance"
+        title="Recorded balance"
         value={totalBalance}
         highlight
         subtitle="Across all your transactions"

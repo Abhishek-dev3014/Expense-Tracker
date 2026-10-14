@@ -45,9 +45,9 @@ const ChartTooltip = ({ active, payload, label }) =>
 
 export default function Home() {
   const reducedMotion = useReducedMotion()
-  const [chartMonths, setChartMonths] = useState(6)
+  const [chartMonths, setChartMonths] = useState(1)
   const [visibleSeries, setVisibleSeries] = useState({ income: true, expense: true })
-  const { expensesOnly = false } = useOutletContext() || {}
+  const { expensesOnly = false, onAddExpense } = useOutletContext() || {}
   const { token } = useAuth()
   const authToken = token || localStorage.getItem("token")
   const [data, setData] = useState(null)
@@ -124,7 +124,7 @@ export default function Home() {
       </div>
     )
   const { monthlyIncome, monthlyExpense, months, categories } = data
-  const chartData = months.slice(-chartMonths)
+  const chartData = chartMonths === 1 ? data.days : months.slice(-chartMonths)
   const toggleSeries = (series) => {
     setVisibleSeries((current) => {
       const other = series === "income" ? "expense" : "income"
@@ -145,29 +145,155 @@ export default function Home() {
         totalPages: data.totalPages || 1,
       }
   return (
-    <div className="space-y-5" aria-busy={loading}>
+    <div className="space-y-5 overview-home" aria-busy={loading}>
       <StatsGrid data={data} expensesOnly={expensesOnly} />
+      <div className="spending-context">
+        <span className="context-icon"><ChartNoAxesColumnIncreasing size={19} /></span>
+        <div>
+          <strong>{categories.length ? `${categories[0].name} is your largest spending category` : "A little tracking goes a long way"}</strong>
+          <p>{categories.length
+            ? `${formatCurrency(categories[0].value)} · ${Math.round(categories[0].value / monthlyExpense * 100)}% of this month’s spending. ${data.monthlyExpenseCount} expenses recorded this month.`
+            : "Start with your latest expense. Your overview will grow with you."}</p>
+        </div>
+        {categories.length ? <button className="text-link" onClick={() => setSelectedCategory(categories[0])}>Review spending <ArrowRight size={14} /></button>
+          : <button className="text-link" onClick={onAddExpense}>Add an expense <ArrowRight size={14} /></button>}
+      </div>
       <div className="overview-grid">
+        <TransactionsTable
+          onEdit={setEditingTransaction}
+          onAddExpense={onAddExpense}
+          expensesOnly={expensesOnly}
+          headingAction={<Link className="text-link" to={`/dashboard/transactions${expensesOnly ? "?type=expense" : ""}`}>View all <ArrowRight size={14} /></Link>}
+          transactions={activity.transactions}
+          page={activity.currentPage}
+          totalPages={activity.totalPages}
+          onPrev={() => setPage(Math.max(1, activity.currentPage - 1))}
+          onNext={() =>
+            setPage(Math.min(activity.currentPage + 1, activity.totalPages))
+          }
+        />
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Spending breakdown</h2>
+              <p>This month · Select a category to explore</p>
+            </div>
+            <PieChart size={17} color="#738065" />
+          </div>
+          {categories.length ? (
+            <>
+              <div className="spending-summary">
+                <div className="spend-total">
+                  <span>Total spent this month</span>
+                  <strong>{formatCurrency(monthlyExpense)}</strong>
+                </div>
+                <svg
+                  className="spending-ring"
+                  viewBox="0 0 100 100"
+                  aria-hidden="true"
+                >
+                  {categories.map((category, index) => (
+                    <circle
+                      key={`${index}-${category.name}`}
+                      cx="50"
+                      cy="50"
+                      r="39"
+                      fill="none"
+                      stroke={COLORS[index]}
+                      strokeWidth="13"
+                      pathLength="100"
+                      strokeDasharray={`${(category.value / monthlyExpense) * 100} 100`}
+                      strokeDashoffset={
+                        (-categories
+                          .slice(0, index)
+                          .reduce((sum, item) => sum + item.value, 0) /
+                          monthlyExpense) *
+                        100
+                      }
+                      transform="rotate(-90 50 50)"
+                    />
+                  ))}
+                </svg>
+              </div>
+              <div className="category-list">
+                {categories.map((category, index) => (
+                  <button
+                    type="button"
+                    className="category-row category-drilldown"
+                    key={`${index}-${category.name}`}
+                    aria-label={`View ${category.name} transactions for ${data.spendingMonth}`}
+                    aria-haspopup="dialog"
+                    onClick={() => setSelectedCategory(category)}
+                  >
+                    <div className="category-row-header">
+                      <span>
+                        <i
+                          className="dot"
+                          style={{ background: COLORS[index] }}
+                        />
+                        {category.name}
+                      </span>
+                      <span className="category-row-amount">
+                        <strong>
+                          {formatCurrency(category.value)}{" "}
+                          <span
+                            style={{
+                              display: "inline",
+                              color: "var(--muted)",
+                              fontSize: 12,
+                              fontWeight: 400,
+                              marginLeft: 5,
+                            }}
+                          >
+                            {Math.round((category.value / monthlyExpense) * 100)}%
+                          </span>
+                        </strong>
+                        <ArrowRight size={16} aria-hidden="true" />
+                      </span>
+                    </div>
+                    <div className="progress-track">
+                      <div
+                        className="progress-fill"
+                        style={{
+                          width: `${(category.value / monthlyExpense) * 100}%`,
+                          background: COLORS[index],
+                        }}
+                      />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="empty-state" style={{ paddingTop: 65 }}>
+              <PieChart size={29} />
+              <strong>No spending this month</strong>
+              <p>Your categories will appear with your first expense.</p>
+            </div>
+          )}
+        </section>
+      </div>
+      <div className="overview-grid" style={{ alignItems: "start" }}>
         <section className="panel cashflow-panel">
           <div className="panel-heading">
             <div>
-              <h2>{expensesOnly ? "Your spending over time" : "Cash flow"}</h2>
+              <h2>{chartMonths === 1 ? "This month, day by day" : expensesOnly ? "Your spending over time" : "Cash flow"}</h2>
               <p>
-                {expensesOnly
+                {chartMonths === 1 ? (expensesOnly ? "See which days you spend the most" : "See when your money comes in and goes out") : expensesOnly
                   ? `Monthly expenses over the last ${chartMonths} months`
                   : `Your cash flow over the last ${chartMonths} months`}
               </p>
             </div>
             <div className="chart-range" role="group" aria-label="Cash flow time range">
-              {[3, 6].map((range) => (
+              {[1, 3, 6].map((range) => (
                 <button
                   key={range}
                   type="button"
                   aria-pressed={chartMonths === range}
-                  aria-label={`Last ${range} months`}
+                  aria-label={range === 1 ? "Daily totals this month" : `Last ${range} months`}
                   onClick={() => setChartMonths(range)}
                 >
-                  {range}M
+                  {range === 1 ? "This month" : `${range}M`}
                 </button>
               ))}
             </div>
@@ -304,119 +430,6 @@ export default function Home() {
             </Link>
           </div>
         </section>
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <h2>Spending breakdown</h2>
-              <p>Spending by category · This month</p>
-            </div>
-            <PieChart size={17} color="#738065" />
-          </div>
-          {categories.length ? (
-            <>
-              <div className="spending-summary">
-                <div className="spend-total">
-                  <span>Total spent this month</span>
-                  <strong>{formatCurrency(monthlyExpense)}</strong>
-                </div>
-                <svg
-                  className="spending-ring"
-                  viewBox="0 0 100 100"
-                  aria-hidden="true"
-                >
-                  {categories.map((category, index) => (
-                    <circle
-                      key={`${index}-${category.name}`}
-                      cx="50"
-                      cy="50"
-                      r="39"
-                      fill="none"
-                      stroke={COLORS[index]}
-                      strokeWidth="13"
-                      pathLength="100"
-                      strokeDasharray={`${(category.value / monthlyExpense) * 100} 100`}
-                      strokeDashoffset={
-                        (-categories
-                          .slice(0, index)
-                          .reduce((sum, item) => sum + item.value, 0) /
-                          monthlyExpense) *
-                        100
-                      }
-                      transform="rotate(-90 50 50)"
-                    />
-                  ))}
-                </svg>
-              </div>
-              <div className="category-list">
-                {categories.map((category, index) => (
-                  <button
-                    type="button"
-                    className="category-row category-drilldown"
-                    key={`${index}-${category.name}`}
-                    aria-label={`View ${category.name} transactions for ${data.spendingMonth}`}
-                    aria-haspopup="dialog"
-                    onClick={() => setSelectedCategory(category)}
-                  >
-                    <div className="category-row-header">
-                      <span>
-                        <i
-                          className="dot"
-                          style={{ background: COLORS[index] }}
-                        />
-                        {category.name}
-                      </span>
-                      <span className="category-row-amount">
-                        <strong>
-                          {formatCurrency(category.value)}{" "}
-                          <span
-                            style={{
-                              display: "inline",
-                              color: "var(--muted)",
-                              fontSize: 12,
-                              fontWeight: 400,
-                              marginLeft: 5,
-                            }}
-                          >
-                            {Math.round((category.value / monthlyExpense) * 100)}%
-                          </span>
-                        </strong>
-                        <ArrowRight size={16} aria-hidden="true" />
-                      </span>
-                    </div>
-                    <div className="progress-track">
-                      <div
-                        className="progress-fill"
-                        style={{
-                          width: `${(category.value / monthlyExpense) * 100}%`,
-                          background: COLORS[index],
-                        }}
-                      />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="empty-state" style={{ paddingTop: 65 }}>
-              <PieChart size={29} />
-              <strong>No spending this month</strong>
-              <p>Your categories will appear with your first expense.</p>
-            </div>
-          )}
-        </section>
-      </div>
-      <div className="overview-grid" style={{ alignItems: "start" }}>
-        <TransactionsTable
-          onEdit={setEditingTransaction}
-          expensesOnly={expensesOnly}
-          transactions={activity.transactions}
-          page={activity.currentPage}
-          totalPages={activity.totalPages}
-          onPrev={() => setPage(Math.max(1, activity.currentPage - 1))}
-          onNext={() =>
-            setPage(Math.min(activity.currentPage + 1, activity.totalPages))
-          }
-        />
         <div className="overview-stack">
           <BudgetHealthCard
             totalExpense={monthlyExpense}
@@ -431,7 +444,7 @@ export default function Home() {
           className="dot"
           style={{ background: "#285c44", width: 5, height: 5 }}
         />
-        All amounts in INR · Monthly figures use transaction dates
+        All amounts in INR · Based on your recorded transactions
       </div>
       {selectedCategory && (
         <CategoryTransactionsModal
