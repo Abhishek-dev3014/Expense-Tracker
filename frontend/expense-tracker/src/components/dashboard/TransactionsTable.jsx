@@ -29,6 +29,7 @@ export default function TransactionsTable({
   subtitle,
   headingAction,
   onEdit,
+  onAddExpense,
 }) {
   return (
     <section className="panel">
@@ -41,7 +42,7 @@ export default function TransactionsTable({
               : "Your latest money movements")}
           </p>
         </div>
-        {headingAction ?? <Link className="text-link" to="/dashboard/transactions">
+        {headingAction ?? <Link className="text-link" to={`/dashboard/transactions${expensesOnly ? "?type=expense" : ""}`}>
           {expensesOnly ? "All transactions" : "View all"}{" "}
           <ArrowUpRight size={14} />
         </Link>}
@@ -55,6 +56,7 @@ export default function TransactionsTable({
               ? "Add your first expense to see your spending here."
               : "Add an income or expense to see your activity here."}
           </p>
+          {onAddExpense && <button className="btn btn-primary empty-action" onClick={onAddExpense}>Add your first expense</button>}
         </div>
       ) : (
         <div className="table-scroll">

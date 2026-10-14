@@ -5,6 +5,7 @@ import App from "./App"
 import { AuthProvider } from "./context/AuthContext"
 import './index.css'
 import './styles/experience.css'
+import './styles/tracking.css'
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>

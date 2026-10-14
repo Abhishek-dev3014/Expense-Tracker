@@ -1,0 +1,85 @@
+/* Daily tracking: compact summaries, readable activity, and explicit filters. */
+.tracking-workspace { width: 100%; }
+.tracking-workspace .page-header { margin-bottom: 22px; }
+.tracking-workspace .page-header h1 { font-size: clamp(27px, 2.6vw, 36px); }
+.tracking-workspace .page-kicker { margin-bottom: 10px; }
+.tracking-workspace .overview-view-control { margin-bottom: 20px; }
+.overview-home .stat-card { padding: 20px 22px; min-height: 148px; }
+.overview-home .stat-value { font-size: clamp(27px, 2.8vw, 38px); margin: 14px 0 8px; }
+.overview-home .overview-grid { align-items: start; }
+.overview-home .overview-grid > .panel:first-child .chart-container { height: 230px; min-height: 230px; flex: initial; }
+.overview-home .activity-table td { padding-block: 12px; }
+.overview-home .panel-heading { padding: 22px 24px 18px; }
+.overview-home .spending-summary { padding-top: 4px; }
+.overview-home .spending-ring { width: 80px; height: 80px; }
+.overview-home .category-list { padding-bottom: 16px; }
+.overview-home .category-row { padding-block: 10px; }
+.spending-context { display: flex; gap: 14px; align-items: center; padding: 16px 20px; background: #edf2e6; border: 1px solid #dfe7d5; border-radius: 16px; }
+.context-icon { display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0; border-radius: 12px; background: white; color: #346348; }
+.spending-context > div { flex: 1; min-width: 0; }
+.spending-context strong { font-size: 13px; font-weight: 650; }
+.spending-context p { font-size: 12px; color: #52654d; margin: 4px 0 0; line-height: 1.6; }
+.spending-context .text-link { flex-shrink: 0; min-height: 36px; }
+.empty-action { margin: 18px auto 0; }
+.transaction-ledger .ledger-heading { padding: 24px 24px 18px; }
+.ledger-description { font-size: 13px; color: var(--muted); margin: 6px 0 0; line-height: 1.6; }
+.transaction-ledger .transaction-toolbar { padding: 0 24px 18px; gap: 16px; }
+.transaction-ledger .transaction-search { width: min(440px, 100%); max-width: none; flex: 1; min-height: 44px; background: #fafbf8; box-shadow: none; }
+.transaction-ledger .transaction-toolbar .btn { min-height: 42px; box-shadow: none; }
+.ledger-filters { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 0 24px 20px; }
+.type-filter { display: flex; border-radius: 11px; background: #f0f3eb; padding: 4px; gap: 3px; }
+.type-filter button { padding: 10px 14px; min-height: 40px; border: 0; border-radius: 8px; color: #52614e; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.type-filter button[aria-pressed="true"] { color: #244f38; background: white; box-shadow: 0 1px 5px #203d2914; font-weight: 650; }
+.ledger-selects { display: flex; gap: 12px; }
+.ledger-selects label { display: flex; flex-direction: column; gap: 6px; font-size: 11px; font-weight: 600; color: #52614e; }
+.ledger-selects select { min-height: 42px; max-width: 210px; border: 1px solid #dce4d5; border-radius: 10px; background: white; color: #263b2f; padding: 8px 28px 8px 12px; font: inherit; font-size: 12px; cursor: pointer; }
+.ledger-results { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 24px; border-top: 1px solid #edf0e8; font-size: 12px; color: #5c6b57; }
+.ledger-results span span { padding: 0 6px; }
+.filter-notice { padding: 0 24px 12px; font-size: 12px; color: #765622; }
+.transaction-ledger .activity-table td { padding-block: 12px; }
+.transaction-ledger .activity-table .ledger-date-group th { background: #f5f7f1; color: #54664b; text-transform: none; letter-spacing: 0; font-size: 12px; padding: 9px 24px; font-weight: 650; }
+.transaction-ledger .activity-table thead th { background: white; padding-block: 12px; }
+.transaction-ledger .activity-table .amount { font-variant-numeric: tabular-nums; }
+.transaction-ledger .icon-button { min-width: 36px; min-height: 36px; }
+.transaction-ledger .transaction-edit { margin-right: 4px; }
+.transaction-ledger .icon-button:last-child:hover { color: #93412f; }
+.tracking-workspace button:focus-visible, .tracking-workspace select:focus-visible, .tracking-workspace a:focus-visible { outline: 3px solid #54845c; outline-offset: 3px; }
+@media (max-width: 1199px) {
+  .ledger-filters { align-items: start; }
+  .spending-context { flex-wrap: wrap; }
+  .spending-context .text-link { margin-left: 52px; }
+}
+@media (max-width: 767px) {
+  .tracking-workspace .page-header { gap: 14px; }
+  .tracking-workspace .page-actions { width: 100%; }
+  .tracking-workspace .page-actions .btn-primary { flex: 1; justify-content: center; }
+  .overview-home .stat-card { padding: 16px; min-height: 126px; }
+  .overview-home .stats-grid-expenses .featured { min-height: 142px; }
+  .overview-home .stat-foot { line-height: 1.5; }
+  .overview-home .panel-heading { padding: 20px 16px 16px; }
+  .overview-home .activity-table td { padding: 0; }
+  .spending-context { padding: 14px; gap: 10px; }
+  .spending-context .text-link { margin-left: 48px; }
+  .spending-context strong { font-size: 12px; }
+  .transaction-ledger .ledger-heading { padding: 20px 16px 16px; align-items: start; }
+  .transaction-ledger .ledger-count { white-space: nowrap; font-size: 10px; }
+  .transaction-ledger .transaction-toolbar { padding: 0 16px 16px; }
+  .transaction-ledger .transaction-search { width: 100%; flex-basis: 100%; }
+  .transaction-ledger .transaction-search input { font-size: 16px; }
+  .ledger-filters { padding: 0 16px 16px; gap: 14px; }
+  .type-filter { width: 100%; }
+  .type-filter button { flex: 1; padding-inline: 8px; font-size: 11px; min-height: 44px; }
+  .ledger-selects { width: 100%; }
+  .ledger-selects label { width: 50%; }
+  .ledger-selects select { width: 100%; min-width: 0; max-width: none; min-height: 44px; font-size: 14px; }
+  .ledger-results { padding: 12px 16px; font-size: 11px; }
+  .transaction-ledger .activity-table tbody .ledger-date-group { display: block; padding: 0; }
+  .transaction-ledger .activity-table .ledger-date-group th { display: block; padding: 10px 16px; }
+  .transaction-ledger .activity-table td { padding: 0; }
+  .transaction-ledger .activity-table tbody tr:not(.ledger-date-group) { grid-template-columns: minmax(0, 1fr) auto; }
+  .transaction-ledger .activity-table td:first-child { grid-row: 1; }
+  .transaction-ledger .activity-table td:last-child:not(.amount) { grid-column: 1 / -1; grid-row: 2; }
+  .transaction-ledger .activity-table .transaction-edit { width: auto; padding-inline: 12px; gap: 6px; }
+  .transaction-ledger .transaction-edit span { display: inline; }
+  .transaction-ledger .table-footer { gap: 8px; padding-inline: 16px; font-size: 11px; }
+}
