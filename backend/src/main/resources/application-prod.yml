@@ -3,6 +3,10 @@
 server:
   forward-headers-strategy: native
 spring:
+  # Defer non-essential singleton creation until first use. The entrypoint
+  # accepts Catalyst's connection while Spring finishes this remaining work.
+  main:
+    lazy-initialization: true
   data:
     mongodb:
       # Catalyst terminates an instance that does not open its configured port promptly.

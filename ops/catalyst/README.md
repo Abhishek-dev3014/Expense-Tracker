@@ -66,7 +66,7 @@ Then create the API service:
 | Image URL | `docker.io/abhishek12439525/fintrack-api:development` |
 | Port | `9000` |
 | Memory | `1024 MB` initially; see CLI limitation below |
-| Startup command | Use image default |
+| Startup command | `/app/docker-entrypoint.sh` (or leave blank to use the image default) |
 | Catalyst authentication | Disabled; the backend uses its existing JWT authentication |
 
 Configure these API environment variables in Catalyst before deploying:
@@ -82,6 +82,12 @@ Configure these API environment variables in Catalyst before deploying:
 | `ML_SERVICE_API_KEY` | Exactly the same secret as the AI service |
 | `APP_TIME_ZONE` | `Asia/Kolkata` |
 | `ML_TIMEOUT` | `15s` initially, to allow some cold-start time; monitor and adjust |
+
+The API image opens Catalyst's public port immediately, then forwards traffic to
+Spring Boot on an internal port. This accommodates Catalyst's short custom-runtime
+startup window. Keep the AppSail port set to `9000`; do not enter a raw `java`
+command in the Catalyst startup-command field, because it bypasses the image's
+startup listener.
 
 Ensure your MongoDB network rules permit the Catalyst service to connect. Test
 API `/api/health`, which checks MongoDB readiness. The backend sends `X-API-Key`
