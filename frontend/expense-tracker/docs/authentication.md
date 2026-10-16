@@ -1,6 +1,6 @@
 # Authentication operations
 
-The frontend is deployed separately from the Spring Boot/MongoDB API. Set `VITE_API_URL` to the API origin in the frontend build environment.
+The frontend is deployed separately from the Spring Boot/MongoDB API. Production requests use the same-origin `/api` rewrite in `vercel.json`, which forwards to Catalyst. This avoids browser cross-origin preflight interception and stale Render configuration. `VITE_API_URL` only overrides the local development API.
 
 ## Backend settings
 

@@ -738,6 +738,7 @@ class ApiIntegrationTest {
                         201);
         assertThat(tx.get("category").asString()).isEqualTo("General");
         assertThat(tx.get("aiConfidence").asDouble()).isZero();
+        assertThat(tx.get("categoryStatus").asString()).isEqualTo("unavailable");
         assertThat(call(get("/api/insights"), token, null, 200).get("insights").size())
                 .isPositive();
     }

@@ -7,8 +7,8 @@ WORKDIR /app
 COPY requirements-catalyst.txt ./
 RUN pip install --no-cache-dir --only-binary=:all: -r requirements-catalyst.txt \
     && useradd --uid 10001 --create-home app
-COPY --chown=app:app app.py start.py ./
-COPY --chown=app:app model_artifacts/model.pkl model_artifacts/vectorizer.pkl ./model_artifacts/
+COPY --chown=app:app app.py start.py text_processing.py categorization.py ./
+COPY --chown=app:app model_artifacts/model.pkl model_artifacts/vectorizer.pkl model_artifacts/metadata.json ./model_artifacts/
 USER app
 EXPOSE 9000
 CMD ["python3", "start.py"]

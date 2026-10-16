@@ -69,9 +69,34 @@ class DeploymentTests(unittest.TestCase):
     def test_real_model_prediction(self):
         status, body = self.request("/predict", {"text": "Lunch at Subway"}, self.key)
         self.assertEqual(status, 200)
-        self.assertTrue(body["predicted_category"])
+        self.assertEqual(body["predicted_category"], "Food")
+        self.assertFalse(body["needs_review"])
         self.assertGreaterEqual(body["confidence"], 0)
         self.assertLessEqual(body["confidence"], 1)
+
+    def test_everyday_categories_and_bank_narrations(self):
+        samples = {
+            "uber travel": "Transport", "UPI/UBER@paytm/123456789": "Transport",
+            "monthly house rent": "Rent", "school tuition fees": "Education",
+            "milk and vegetables": "Grocery", "electricity bill": "Utilities",
+            "Netflix subscription": "Entertainment", "bought a laptop": "Electronics",
+            "Apollo pharmacy medicines": "Health", "Myntra shirt order": "Clothing",
+            "Indigo flight ticket": "Travel", "Flipkart shopping": "Shopping",
+        }
+        status, body = self.request("/predict/batch", {"texts": list(samples)}, self.key)
+        self.assertEqual(status, 200)
+        self.assertEqual([p["predicted_category"] for p in body["predictions"]], list(samples.values()))
+        for text in ("Unknown merchant xyzzy", "bank transfer to Rahul", "monthly subscription", "123 !!!"):
+            status, body = self.request("/predict/batch", {"texts": [text]}, self.key)
+            self.assertEqual(status, 200)
+            self.assertEqual(body["predictions"][0]["predicted_category"], "General")
+            self.assertTrue(body["predictions"][0]["needs_review"])
+            self.assertEqual(body["predictions"][0]["confidence"], 0)
+
+    def test_batch_authentication_and_limits(self):
+        self.assertEqual(self.request("/predict/batch", {"texts": ["Uber"]})[0], 401)
+        for texts in ([], ["x"] * 1001, [""], ["x" * 501]):
+            self.assertEqual(self.request("/predict/batch", {"texts": texts}, self.key)[0], 422)
 
     def test_invalid_input(self):
         for body in ({}, {"text": ""}, {"text": "123 !!!"}, {"text": "x" * 501}):

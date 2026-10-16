@@ -130,6 +130,9 @@ export default function TransactionModal({ type, transaction, onClose, onSubmit 
               maxLength={200}
             />
           </label>
+          {!income && <small className="field-hint">Auto-detect uses your description. Include a merchant or purpose, such as “Uber ride” or “School tuition”.</small>}
+          {transaction?.categoryStatus === "unavailable" && <p role="status">Auto-categorization was unavailable. Select Auto-detect to try again, or choose a category.</p>}
+          {transaction?.categoryStatus === "needs_review" && <p role="status">This description needs review. Add detail and select Auto-detect, or choose a category.</p>}
           <div className="transaction-details-grid">
             <CategorySelect
               type={type}

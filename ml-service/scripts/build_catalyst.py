@@ -18,7 +18,7 @@ def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="fintrack-build-", dir=OUTPUT) as temporary:
         bundle = Path(temporary)
-        for name in ("app.py", "start.py", "requirements-catalyst.txt"):
+        for name in ("app.py", "start.py", "text_processing.py", "categorization.py", "requirements-catalyst.txt"):
             shutil.copy2(SOURCE / name, bundle / name)
         shutil.copytree(SOURCE / "model_artifacts", bundle / "model_artifacts")
         subprocess.run([

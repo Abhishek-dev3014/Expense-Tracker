@@ -29,6 +29,7 @@ public class Transaction extends BaseDocument {
     private String type;
     private String category = "General";
     private double aiConfidence;
+    private String categoryStatus = "manual";
     private Instant date;
     private List<SplitDetail> splitDetails = new ArrayList<>();
 }

@@ -149,7 +149,7 @@ export default function Transactions() {
     URL.revokeObjectURL(url)
   }
   const categoryOptions = [...new Set([
-    "Food", "Transport", "Shopping", "Rent", "Utilities", "Entertainment", "Health", "Education", "Other", "General",
+    "Food", "Grocery", "Transport", "Travel", "Shopping", "Clothing", "Electronics", "Rent", "Utilities", "Entertainment", "Health", "Education", "Other", "General",
     "Salary", "Freelance", "Business", "Investment", ...categories, ...transactions.map((tx) => tx.category).filter(Boolean), ...(category ? [category] : []),
   ])].sort((a, b) => a.localeCompare(b))
   return (

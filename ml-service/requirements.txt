@@ -1,6 +1,2 @@
-fastapi
-uvicorn
-pandas
-scikit-learn
-joblib
-numpy
+# Keep training and inference on the same tested library versions.
+-r requirements-catalyst.txt

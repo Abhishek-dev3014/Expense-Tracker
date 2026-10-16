@@ -1,0 +1,15 @@
+{
+  "Food": ["Breakfast dosa with filter coffee", "Swiggy lunch delivered to office", "Evening sandwich from Subway", "Chai at the roadside stall", "Dinner with colleagues at a restaurant", "Dominos takeaway pizza"],
+  "Grocery": ["Milk and fresh vegetables for tomorrow", "Bought rice and dal at the local market", "Amazon Fresh delivery of eggs", "Blinkit household grocery supplies", "Weekly provisions from D Mart", "Doodh sabji aur atta"],
+  "Transport": ["Uber trip from station to office", "Ola journey back from work", "Filled petrol in my motorcycle", "Auto fare to bus stand", "Metro pass renewed for commute", "Fastag deducted highway toll"],
+  "Travel": ["IndiGo airfare for holiday in Goa", "Reserved railway ticket through IRCTC", "Two nights accommodation in a hotel", "Airbnb stay on vacation", "MakeMyTrip booked our flight", "Visa application for overseas trip"],
+  "Shopping": ["Purchased kitchen utensils on Amazon", "Flipkart marketplace order delivered", "New sofa for living room", "Gift for my niece birthday", "Nykaa makeup and beauty products", "Desk chair bought at IKEA"],
+  "Clothing": ["Ordered jeans and shirts from Amazon", "New running sneakers from Myntra", "Tailor stitched wedding dress", "Purchased saree for festival", "Shoes bought on Flipkart", "Winter clothes from H&M"],
+  "Electronics": ["Ordered Dell laptop through Amazon", "Bluetooth headphones ordered on Flipkart", "Replacement charger for mobile phone", "Samsung television delivered today", "Repairing broken laptop display", "New keyboard for my computer"],
+  "Utilities": ["Paid broadband renewal to Airtel", "Recharge of prepaid mobile data", "Electricity charges for last month", "Refilled LPG gas cylinder", "Water board utility payment", "Bijli ka bill jama kiya"],
+  "Rent": ["House rental paid to the owner", "Monthly lease of our apartment", "Security deposit for my new flat", "PG accommodation monthly payment", "Housing society maintenance dues", "Transferred room kiraya to landlord"],
+  "Health": ["Prescription tablets from Apollo pharmacy", "Dentist appointment for tooth pain", "Blood sample test at diagnostic lab", "Gym renewal for fitness training", "Hospital consultation with a doctor", "Dawai bought at medical store"],
+  "Education": ["Paid school tuition for daughter", "Semester payment to engineering college", "Udemy Python training class", "Entrance exam registration amount", "Textbooks for university course", "Payment for maths private tutor"],
+  "Entertainment": ["Spotify music subscription renewed", "Netflix streaming renewal", "Watched a movie at PVR", "BookMyShow concert entry tickets", "Steam games downloaded", "YouTube Premium streaming payment"],
+  "General": ["Unknown merchant xyzzy", "UPI payment", "Monthly subscription", "Bank transfer to Rahul", "Miscellaneous transaction", "xyzqv blorpt", "Payment reference 987654321", "Paid yesterday", "Sent money to friend", "Annual fee"]
+}

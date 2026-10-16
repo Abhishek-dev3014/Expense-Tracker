@@ -19,10 +19,10 @@ Prerequisites: JDK 21+, Node.js 22+, and a reachable MongoDB instance. Maven is 
    npm ci
    npm run dev
    ```
-   `VITE_API_URL` defaults to `http://localhost:5001`. If you change the server port or deploy it elsewhere, set this variable in the frontend's build environment.
+   `VITE_API_URL` defaults to `http://localhost:5001` during local development. Production uses a same-origin `/api` proxy in `frontend/expense-tracker/vercel.json`, targeting the Catalyst Java API. Change that rewrite when moving the API; production builds intentionally ignore the legacy Render environment variable.
 4. Check [API readiness](http://localhost:5001/api/health). A ready database produces `{"status":"ok"}`.
 
-The Python ML service remains optional. Run `uvicorn app:app --host 127.0.0.1 --port 8000` from `ml-service` after installing its requirements in a Python virtual environment. When the predictor is unavailable, the API saves expenses under `General` within the configured timeout. User-selected categories never require ML.
+The Python ML service remains optional. Run `uvicorn app:app --host 127.0.0.1 --port 8000` from `ml-service` after installing its requirements in a Python virtual environment. When the predictor is unavailable, the API saves expenses under `General` within the configured timeout. User-selected categories never require ML. The response records `categoryStatus=unavailable` for an outage and `needs_review` for uncertain descriptions. CSV imports auto-detect blank expense categories in one batch. See the [ML model card](ml-service/MODEL_CARD.md) for evaluation, limitations and reproducible training.
 
 ## Tests and build
 

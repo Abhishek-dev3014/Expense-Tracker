@@ -163,9 +163,14 @@ export default function DashboardLayout() {
     })
     if (!response.ok)
       throw new Error(`Could not save your ${type}. Please try again.`)
+    const saved = await response.json()
     setShowIncome(false)
     setShowExpense(false)
-    toast.success(`${type === "income" ? "Income" : "Expense"} added`)
+    if (saved.categoryStatus === "unavailable")
+      toast("Expense saved. Auto-categorization is unavailable; choose a category when editing.")
+    else if (saved.categoryStatus === "needs_review")
+      toast("Expense saved. Add more detail or choose a category when editing.")
+    else toast.success(`${type === "income" ? "Income" : "Expense"} added`)
     window.dispatchEvent(new Event("transactions-updated"))
   }
   return (

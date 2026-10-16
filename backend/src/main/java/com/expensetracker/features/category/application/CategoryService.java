@@ -19,8 +19,12 @@ public class CategoryService {
                     "expense",
                             List.of(
                                     "Food",
+                                    "Grocery",
                                     "Transport",
+                                    "Travel",
                                     "Shopping",
+                                    "Clothing",
+                                    "Electronics",
                                     "Rent",
                                     "Utilities",
                                     "Entertainment",

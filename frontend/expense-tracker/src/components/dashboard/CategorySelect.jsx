@@ -6,8 +6,12 @@ import { useAuth } from "../../context/AuthContext"
 const defaults = {
   expense: [
     "Food",
+    "Grocery",
     "Transport",
+    "Travel",
     "Shopping",
+    "Clothing",
+    "Electronics",
     "Rent",
     "Utilities",
     "Entertainment",

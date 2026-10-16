@@ -30,6 +30,7 @@ public class TransactionService {
             var result = prediction.predict(input.title());
             tx.setCategory(result.category());
             tx.setAiConfidence(result.confidence());
+            tx.setCategoryStatus(result.status());
         }
         return transactions.insert(tx);
     }
@@ -52,6 +53,25 @@ public class TransactionService {
 
     public int batch(String user, ImportTransactionsRequest input) {
         var docs = input.transactions().stream().map(tx -> make(user, tx.type(), tx)).toList();
+        var pending = new LinkedHashMap<String, List<Transaction>>();
+        for (int i = 0; i < docs.size(); i++) {
+            var inputTx = input.transactions().get(i);
+            if ("expense".equals(docs.get(i).getType())
+                    && (inputTx.category() == null || inputTx.category().isBlank())) {
+                pending.computeIfAbsent(docs.get(i).getTitle(), ignored -> new ArrayList<>())
+                        .add(docs.get(i));
+            }
+        }
+        var results = prediction.predictAll(new ArrayList<>(pending.keySet()));
+        int index = 0;
+        for (var group : pending.values()) {
+            var result = results.get(index++);
+            for (var tx : group) {
+                tx.setCategory(result.category());
+                tx.setAiConfidence(result.confidence());
+                tx.setCategoryStatus(result.status());
+            }
+        }
         transactions.insert(docs);
         return docs.size();
     }
@@ -100,13 +120,16 @@ public class TransactionService {
             var result = prediction.predict(input.title());
             updated.setCategory(result.category());
             updated.setAiConfidence(result.confidence());
+            updated.setCategoryStatus(result.status());
         } else if (Objects.equals(updated.getCategory(), tx.getCategory())) {
             updated.setAiConfidence(tx.getAiConfidence());
+            updated.setCategoryStatus(tx.getCategoryStatus());
         }
         tx.setTitle(updated.getTitle());
         tx.setAmount(updated.getAmount());
         tx.setCategory(updated.getCategory());
         tx.setAiConfidence(updated.getAiConfidence());
+        tx.setCategoryStatus(updated.getCategoryStatus());
         tx.setDate(Dates.parse(input.date(), tx.getDate()));
         return transactions.save(tx);
     }

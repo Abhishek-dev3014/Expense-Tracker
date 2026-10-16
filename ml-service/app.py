@@ -1,10 +1,12 @@
 """Expense categorization API shared by local development and Catalyst AppSail."""
+import json
 import logging
 import os
 from pathlib import Path
-import re
 import secrets
-import string
+from typing import Annotated
+from categorization import categorize
+from text_processing import clean_text
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
@@ -20,6 +22,7 @@ ARTIFACTS = Path(__file__).resolve().parent / "model_artifacts"
 try:
     model = joblib.load(ARTIFACTS / "model.pkl")
     vectorizer = joblib.load(ARTIFACTS / "vectorizer.pkl")
+    metadata = json.loads((ARTIFACTS / "metadata.json").read_text())
 except Exception:
     logger.exception("Could not load the packaged model artifacts")
     raise
@@ -27,8 +30,15 @@ except Exception:
 app = FastAPI(title="FinTrack AI", docs_url=None, redoc_url=None, openapi_url=None)
 
 
+Description = Annotated[str, Field(min_length=1, max_length=500)]
+
+
 class TransactionInput(BaseModel):
-    text: str = Field(min_length=1, max_length=500)
+    text: Description
+
+
+class BatchInput(BaseModel):
+    texts: list[Description] = Field(min_length=1, max_length=1000)
 
 
 def require_api_key(x_api_key: str = Header(default="")):
@@ -38,24 +48,11 @@ def require_api_key(x_api_key: str = Header(default="")):
         raise HTTPException(status_code=401, detail="Invalid service credentials")
 
 
-def clean_text(text):
-    text = str(text).lower()
-    noise = [
-        "transaction at", "payment to", "spent on", "order at",
-        "upi", "pos", "term", "ref", "imps", "neft", "transfer",
-    ]
-    for item in noise:
-        text = text.replace(item, "")
-    text = re.sub(r"http\S+", "", text)
-    text = re.sub(r"\d+", "", text)
-    text = text.translate(str.maketrans("", "", string.punctuation))
-    return re.sub(r"\s+", " ", text).strip()
-
 
 @app.get("/")
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "fintrack-ai"}
+    return {"status": "ok", "service": "fintrack-ai", "model_version": metadata["model_version"]}
 
 
 @app.post("/predict", dependencies=[Depends(require_api_key)])
@@ -63,10 +60,13 @@ def predict(data: TransactionInput):
     cleaned = clean_text(data.text)
     if not cleaned:
         raise HTTPException(status_code=422, detail="Enter a description containing words")
-    vector = vectorizer.transform([cleaned])
-    prediction = model.predict(vector)[0]
-    probability = model.predict_proba(vector).max()
-    return {"predicted_category": str(prediction), "confidence": float(probability)}
+    return categorize(vectorizer, model, [data.text], metadata)[0]
+
+
+@app.post("/predict/batch", dependencies=[Depends(require_api_key)])
+def predict_batch(data: BatchInput):
+    return {"predictions": categorize(vectorizer, model, data.texts, metadata)}
+
 
 
 if __name__ == "__main__":
