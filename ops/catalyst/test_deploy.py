@@ -29,6 +29,8 @@ esac
                 path = root / tool
                 path.write_text(stub)
                 path.chmod(0o755)
+            jar = root / 'app.jar'
+            jar.write_bytes(b'test jar fixture')
             env = {
                 **os.environ,
                 'PATH': str(root) + os.pathsep + os.environ['PATH'],
@@ -36,6 +38,7 @@ esac
                 'CATALYST_TOKEN': 'fake-test-token', 'CATALYST_PROJECT_ID': '123',
                 'DOCKERHUB_USERNAME': 'test', 'GITHUB_SHA': 'a' * 40,
                 'AI_URL': 'https://ai.example', 'API_URL': 'https://api.example',
+                'API_JAR': str(jar),
             }
             result = subprocess.run(['bash', str(SCRIPT)], env=env, capture_output=True, text=True)
             calls = (root / 'calls').read_text()
@@ -49,6 +52,9 @@ esac
         self.assertLess(calls.index('https://ai.example/health'), calls.index('--name fintrack-api'))
         self.assertIn('https://api.example/api/health', calls)
         self.assertIn('--dc in', calls)
+        self.assertIn('--stack java21 --platform javase', calls)
+        self.assertNotIn('docker://test/fintrack-api', calls)
+        self.assertIn('--server.port=9000 --server.address=0.0.0.0', calls)
 
     def test_zero_exit_cli_failure_stops_release(self):
         result, calls = self.run_deploy('cli_failure')

@@ -32,6 +32,8 @@ cleanup() {
 trap 'cleanup; exit 143' INT TERM
 trap cleanup EXIT
 
+echo "Starting API listener on 0.0.0.0:${public_port}; Spring port ${internal_port}"
+
 # socat accepts Catalyst's connection immediately on the public port and
 # connects to Spring only after Spring has completed its own startup.
 socat "TCP-LISTEN:${public_port},fork,reuseaddr,keepalive" "TCP:127.0.0.1:${internal_port},retry=30,interval=1" &

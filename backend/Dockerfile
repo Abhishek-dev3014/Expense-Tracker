@@ -13,6 +13,6 @@ WORKDIR /app
 COPY --from=build --chown=app:app /build/target/expense-tracker-api-1.0.0.jar app.jar
 COPY --chown=app:app --chmod=755 docker-entrypoint.sh /app/docker-entrypoint.sh
 USER app
-ENV PORT=5001
+ENV PORT=9000
 EXPOSE 9000
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

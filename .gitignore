@@ -7,6 +7,7 @@ backend/.env
 # Logs
 npm-debug.log*
 yarn-error.log*
+catalyst-debug.log*
 
 # OS files
 .DS_Store

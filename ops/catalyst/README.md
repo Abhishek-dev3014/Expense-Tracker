@@ -1,10 +1,25 @@
-# FinTrack Docker → GitHub Actions → Catalyst
+# FinTrack GitHub Actions → Catalyst
 
-Two Linux AMD64 images run independently: `abhishek12439525/fintrack-ai` and
-`abhishek12439525/fintrack-api`. GitHub Actions verifies the Java backend, builds
-both images, and tests the real AI model over HTTP inside its container. Only then
-can it publish the tested images and deploy AI followed by API to **Development**.
+The AI service runs from `abhishek12439525/fintrack-ai` on Linux AMD64. The API
+runs as a **Catalyst-managed Java 21 / Java SE** service. GitHub Actions verifies
+the Java backend, builds both Docker images for portability, and checks both
+containers over HTTP. It publishes the images and can deploy AI followed by the
+backend JAR to **Development**.
 Production promotion is a separate Catalyst console action.
+
+## Verified backend recovery (17 October 2026)
+
+The API's Alpine-based custom runtime returned Catalyst's pre-HTTP startup error,
+even after a verified local container, explicit entrypoint, correct port and CLI
+redeployment. Deploying the same JAR with Catalyst-managed Java 21 returned
+HTTP 200 and `{"status":"ok"}` from `/api/health`, including an Atlas ping. This
+isolates the remaining failure to the custom-runtime launch path; Catalyst's
+empty logs do not identify the exact runtime incompatibility. Keep the API on
+managed Java 21 rather than replacing this working deployment with its image.
+
+There was also a reproducible image bug: `ENV PORT=5001` conflicted with AppSail's
+port 9000 when no override was provided. The image now defaults to 9000, and CI
+tests both that default and the injected Catalyst port against a local database.
 
 ## 1. Docker Hub and GitHub credentials
 
@@ -57,16 +72,18 @@ generate a new key with your password manager. The AI container refuses to start
 without a key. Open the resulting Development URL plus `/health`; it should return
 `{"status":"ok","service":"fintrack-ai"}`.
 
-Then create the API service:
+The existing API service keeps its URL and environment variables. Deploy its
+compiled JAR as a managed runtime (the script in section 3 does this automatically):
 
 | Field | Value |
 | --- | --- |
 | AppSail name | `fintrack-api` |
-| Deployment type / registry | Docker Image / Docker Hub |
-| Image URL | `docker.io/abhishek12439525/fintrack-api:development` |
+| Deployment type | Catalyst-Managed Runtime |
+| Stack / platform | Java 21 / Java SE |
+| Build file | Backend JAR, packaged as `app.jar` |
 | Port | `9000` |
 | Memory | `1024 MB` initially; see CLI limitation below |
-| Startup command | `/app/docker-entrypoint.sh` (or leave blank to use the image default) |
+| Startup command | `java -XX:TieredStopAtLevel=1 -XX:MaxRAMPercentage=60.0 -XX:+ExitOnOutOfMemoryError -jar app.jar --server.port=9000 --server.address=0.0.0.0` |
 | Catalyst authentication | Disabled; the backend uses its existing JWT authentication |
 
 Configure these API environment variables in Catalyst before deploying:
@@ -83,11 +100,15 @@ Configure these API environment variables in Catalyst before deploying:
 | `APP_TIME_ZONE` | `Asia/Kolkata` |
 | `ML_TIMEOUT` | `15s` initially, to allow some cold-start time; monitor and adjust |
 
-The API image opens Catalyst's public port immediately, then forwards traffic to
-Spring Boot on an internal port. This accommodates Catalyst's short custom-runtime
-startup window. Keep the AppSail port set to `9000`; do not enter a raw `java`
-command in the Catalyst startup-command field, because it bypasses the image's
-startup listener.
+The API image defaults to `PORT=9000`, matching its exposed port and the AppSail
+setting. `X_ZOHO_CATALYST_LISTEN_PORT` overrides that default when injected. Do not
+rely on the console's routing-port setting to rewrite the image's `PORT` variable.
+CI boots the actual API container against MongoDB with no port variables and with
+a Catalyst port override, then checks `/api/health` before publishing.
+
+The portable API image uses `/app/docker-entrypoint.sh` and a public TCP listener.
+The active managed Java deployment runs `app.jar` directly with the command above;
+it does not include that container script or require `socat`.
 
 Ensure your MongoDB network rules permit the Catalyst service to connect. Test
 API `/api/health`, which checks MongoDB readiness. The backend sends `X-API-Key`
@@ -118,8 +139,9 @@ Add these GitHub Actions **Variables**:
 | `CATALYST_AUTO_DEPLOY` | `true`, after both services are healthy and the memory allocation below is acceptable |
 
 **CLI memory limitation:** inspection of `zcatalyst-cli@1.28.0` shows that its
-standalone custom-image deployment sends **2048 MB per service on every deploy**.
-The workflow therefore resets the initial memory values to 2048 MB. This affects
+standalone custom-image deployment sends **2048 MB for the AI service on every deploy**.
+The managed API deployment preserves its existing allocation (currently 1024 MB).
+The AI allocation affects
 usage charges. You may lower memory manually afterward, but the next CI deployment
 will reset it again. Leave `CATALYST_AUTO_DEPLOY` unset if you prefer publishing
 images automatically and redeploying in the console with your chosen memory.
@@ -127,9 +149,10 @@ The regular CLI deployment route also hardcodes Catalyst authentication on for
 custom images in this version, so this workflow deliberately uses standalone
 image deployment, retaining the apps' own authentication instead.
 
-CI sends the exact tested local Docker images to Catalyst using its supported
-Docker image protocol. Docker Hub retains the same releases for manual deploys
-and rollback. Merely pushing a tag does **not** redeploy Catalyst. The CLI step is
+CI sends the tested AI image using Catalyst's Docker image protocol and the
+verified backend JAR using its Java 21 runtime. Docker Hub retains both images
+for portability; use the managed Java JAR for API rollback. Merely pushing a tag
+does **not** redeploy Catalyst. The CLI step is
 what updates the running Development services. Runtime credentials stay in the
 Catalyst console; deployment does not send replacements for them.
 
