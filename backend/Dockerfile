@@ -12,4 +12,8 @@ COPY --from=build --chown=app:app /build/target/expense-tracker-api-1.0.0.jar ap
 USER app
 ENV PORT=5001
 EXPOSE 5001
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=60.0", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]
+ENTRYPOINT ["java", \
+  "-XX:TieredStopAtLevel=1", \
+  "-XX:MaxRAMPercentage=60.0", \
+  "-XX:+ExitOnOutOfMemoryError", \
+  "-jar", "/app/app.jar"]
