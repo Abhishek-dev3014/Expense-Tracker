@@ -23,6 +23,8 @@ class CategoryPredictionClientTest {
                                     exchange.getRequestBody().readAllBytes(),
                                     StandardCharsets.UTF_8);
                     assertThat(request).contains("text", "Bus fare");
+                    assertThat(exchange.getRequestHeaders().getFirst("X-API-Key"))
+                            .isEqualTo("test-service-key");
                     var response =
                             "{\"predicted_category\":\"Transport\",\"confidence\":0.92}"
                                     .getBytes(StandardCharsets.UTF_8);
@@ -39,6 +41,7 @@ class CategoryPredictionClientTest {
                             Duration.ofDays(7),
                             List.of("http://localhost:5173"),
                             "http://127.0.0.1:" + server.getAddress().getPort() + "/predict/",
+                            "test-service-key",
                             Duration.ofSeconds(2),
                             "UTC");
             var prediction =

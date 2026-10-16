@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:5001}
+  port: ${X_ZOHO_CATALYST_LISTEN_PORT:${PORT:5001}}
   shutdown: graceful
   error:
     include-message: never
@@ -30,6 +30,7 @@ app:
   jwt-ttl: ${JWT_TTL:7d}
   allowed-origins: ${FRONTEND_URL:http://localhost:5173},http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174
   ml-service-url: ${ML_SERVICE_URL:http://localhost:8000}
+  ml-service-api-key: ${ML_SERVICE_API_KEY:}
   ml-timeout: ${ML_TIMEOUT:5s}
   time-zone: ${APP_TIME_ZONE:Asia/Kolkata}
 logging:

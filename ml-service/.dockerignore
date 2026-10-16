@@ -1,0 +1,8 @@
+**
+!Dockerfile
+!requirements-catalyst.txt
+!app.py
+!start.py
+!model_artifacts/
+!model_artifacts/model.pkl
+!model_artifacts/vectorizer.pkl

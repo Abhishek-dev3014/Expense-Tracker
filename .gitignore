@@ -30,3 +30,7 @@ __pycache__/
 
 # Frontend build artifacts
 frontend/expense-tracker/dist/
+
+# Generated Catalyst bundles and local deployment secrets
+/deployment/catalyst/
+ml-service/vendor/

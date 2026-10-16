@@ -37,9 +37,11 @@ public class CategoryPredictionClient {
                             .header("Content-Type", "application/json")
                             .POST(
                                     HttpRequest.BodyPublishers.ofString(
-                                            mapper.writeValueAsString(Map.of("text", text))))
-                            .build();
-            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                                            mapper.writeValueAsString(Map.of("text", text))));
+            if (properties.mlServiceApiKey() != null && !properties.mlServiceApiKey().isBlank()) {
+                request.header("X-API-Key", properties.mlServiceApiKey().strip());
+            }
+            var response = client.send(request.build(), HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200) {
                 var data = mapper.readTree(response.body());
                 String category = data.path("predicted_category").asString("");
