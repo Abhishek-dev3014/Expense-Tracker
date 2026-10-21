@@ -21,7 +21,7 @@ const defaults = {
   ],
   income: ["Salary", "Freelance", "Business", "Investment", "Other"],
 }
-export default function CategorySelect({ type, defaultValue = "", onBusyChange }) {
+export default function CategorySelect({ type, defaultValue = "", onBusyChange = () => {}, onValueChange = () => {}, id = "transaction-category", allowAutoDetect = true }) {
   const { token } = useAuth()
   const [categories, setCategories] = useState([])
   const [value, setValue] = useState(defaultValue)
@@ -86,6 +86,7 @@ export default function CategorySelect({ type, defaultValue = "", onBusyChange }
     )
     if (existing) {
       setValue(existing)
+      onValueChange(existing)
       setEditing(false)
       setName("")
       setError("")
@@ -115,6 +116,7 @@ export default function CategorySelect({ type, defaultValue = "", onBusyChange }
         )
       setCategories((items) => [...new Set([...items, data.name])])
       setValue(data.name)
+      onValueChange(data.name)
       setName("")
       setEditing(false)
       select.current?.focus()
@@ -133,18 +135,21 @@ export default function CategorySelect({ type, defaultValue = "", onBusyChange }
   }
   return (
     <div className="form-field category-field">
-      <label htmlFor="transaction-category">Category</label>
+      <label htmlFor={id}>Category</label>
       <select
         ref={select}
-        id="transaction-category"
+        id={id}
         name="category"
-        required={type === "income"}
+        required={type === "income" || !allowAutoDetect}
         value={value}
-        onChange={(event) => setValue(event.target.value)}
+        onChange={(event) => {
+          setValue(event.target.value)
+          onValueChange(event.target.value)
+        }}
         disabled={saving}
       >
         <option value="">
-          {type === "income" ? "Select category" : "Auto-detect"}
+          {type === "income" || !allowAutoDetect ? "Select category" : "Auto-detect"}
         </option>
         {defaults[type].map((item) => (
           <option key={item} value={item}>
@@ -196,15 +201,15 @@ export default function CategorySelect({ type, defaultValue = "", onBusyChange }
         </button>
       ) : (
         <div className="category-editor">
-          <label htmlFor="custom-category-name">New {type} category</label>
+          <label htmlFor={`${id}-new`}>New {type} category</label>
           <input
             ref={input}
-            id="custom-category-name"
+            id={`${id}-new`}
             value={name}
             maxLength={40}
             placeholder="e.g. Pet care"
             disabled={saving}
-            aria-describedby="category-help"
+            aria-describedby={`${id}-help`}
             aria-invalid={Boolean(error)}
             onChange={(event) => setName(event.target.value)}
             onKeyDown={(event) => {
@@ -214,7 +219,7 @@ export default function CategorySelect({ type, defaultValue = "", onBusyChange }
               }
             }}
           />
-          <small id="category-help" className="field-hint">
+          <small id={`${id}-help`} className="field-hint">
             Saved to your account for future{" "}
             {type === "income" ? "income entries" : "expenses"}.
           </small>

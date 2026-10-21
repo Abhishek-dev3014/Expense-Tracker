@@ -10,4 +10,10 @@ public record CreateTransactionRequest(
                 BigDecimal amount,
         @Size(max = 40) String category,
         @Size(max = 40) String date,
-        @Pattern(regexp = "income|expense") String type) {}
+        @Pattern(regexp = "income|expense") String type,
+        Boolean rememberCategory) {
+    public CreateTransactionRequest(
+            String title, BigDecimal amount, String category, String date, String type) {
+        this(title, amount, category, date, type, false);
+    }
+}

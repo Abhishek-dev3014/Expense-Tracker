@@ -328,6 +328,30 @@ body {
 
 .transaction-search input { background: transparent; }
 
+.category-memory-choice { padding: 14px; margin: 8px 0 18px; border: 1px solid #dce4d4; border-radius: 12px; background: #f7f9f3; }
+.category-memory-choice label { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+.category-memory-choice input { width: 17px; height: 17px; accent-color: #356b4b; flex-shrink: 0; }
+.category-memory-choice small { display: block; margin: 8px 0 0 27px; color: var(--muted); line-height: 1.6; }
+.category-correction-history { margin-bottom: 16px; font-size: 12px; color: var(--muted); }
+.category-correction-history summary { cursor: pointer; }
+.category-correction-history ul { padding-left: 18px; margin-top: 8px; }
+.category-memory-page { display: grid; gap: 20px; max-width: 1000px; }
+.category-memory-intro { display: flex; gap: 16px; padding: 24px; }
+.category-memory-intro > svg { flex-shrink: 0; color: #356b4b; }
+.category-memory-intro h2 { font-size: 18px; margin: 0 0 10px; }
+.category-memory-intro p { font-size: 13px; color: var(--muted); line-height: 1.8; margin: 8px 0 0; }
+.category-memory-list { list-style: none; display: grid; gap: 14px; padding: 0; margin: 0; }
+.category-memory-rule { padding: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+.category-memory-description { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
+.category-memory-description h3 { font-size: 15px; margin: 0 0 8px; }
+.category-memory-description p { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; margin: 0; }
+.category-memory-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.category-memory-rule form { width: 100%; max-width: 560px; }
+.category-memory-rule fieldset { border: 0; padding: 0; margin: 0; }
+.category-memory-delete { flex-basis: 100%; border-top: 1px solid #dce4d4; padding-top: 14px; font-size: 13px; }
+.category-memory-delete .btn { margin: 12px 8px 0 0; }
+.category-memory-notice { color: #356b4b; font-size: 13px; }
+
 .transaction-dialog,
 .category-transactions-dialog {
   background: linear-gradient(150deg, #fff, #f8faf3);

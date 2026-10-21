@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import com.expensetracker.features.category.application.CategoryRuleService;
 import com.expensetracker.features.transaction.domain.Transaction;
 import com.expensetracker.features.transaction.dto.CreateTransactionRequest;
 import com.expensetracker.features.transaction.dto.ImportTransactionsRequest;
@@ -22,6 +23,34 @@ class TransactionPredictionTest {
     }
 
     @Test
+    void memoryFailureDoesNotReportASavedExpenseAsFailedOrRepeatTheFinancialWrite() {
+        var repo = mock(TransactionRepository.class);
+        var predictor = mock(CategoryPredictionClient.class);
+        var rules = mock(CategoryRuleService.class);
+        when(repo.insert(any(Transaction.class))).thenAnswer(call -> call.getArgument(0));
+        when(rules.remember("owner", "Uber", "Transport"))
+                .thenThrow(
+                        new org.springframework.dao.DataAccessResourceFailureException(
+                                "test failure"));
+        var service = new TransactionService(repo, null, predictor, Clock.systemUTC(), rules);
+        var result =
+                service.create(
+                        "owner",
+                        "expense",
+                        new CreateTransactionRequest(
+                                "Uber",
+                                new BigDecimal("120"),
+                                "Transport",
+                                "2026-10-21",
+                                "expense",
+                                true));
+        assertThat(result.getCategory()).isEqualTo("Transport");
+        assertThat(result.getCategoryRuleSaved()).isFalse();
+        verify(repo, times(1)).insert(any(Transaction.class));
+        verifyNoInteractions(predictor);
+    }
+
+    @Test
     void ordinaryExpenseStoresCategoryConfidenceAndPredictionStatus() {
         var repo = mock(TransactionRepository.class);
         var predictor = mock(CategoryPredictionClient.class);
@@ -29,7 +58,9 @@ class TransactionPredictionTest {
                 .thenReturn(
                         new CategoryPredictionClient.Prediction("Transport", 0.95, "predicted"));
         when(repo.insert(any(Transaction.class))).thenAnswer(call -> call.getArgument(0));
-        var service = new TransactionService(repo, null, predictor, Clock.systemUTC());
+        var service =
+                new TransactionService(
+                        repo, null, predictor, Clock.systemUTC(), mock(CategoryRuleService.class));
         var result = service.create("owner", "expense", expense("uber travel", ""));
         assertThat(result.getCategory()).isEqualTo("Transport");
         assertThat(result.getAiConfidence()).isEqualTo(0.95);
@@ -47,7 +78,9 @@ class TransactionPredictionTest {
                                 new CategoryPredictionClient.Prediction(
                                         "Transport", 0.95, "predicted"),
                                 new CategoryPredictionClient.Prediction("Food", 0.9, "predicted")));
-        var service = new TransactionService(repo, null, predictor, Clock.systemUTC());
+        var service =
+                new TransactionService(
+                        repo, null, predictor, Clock.systemUTC(), mock(CategoryRuleService.class));
         var income =
                 new CreateTransactionRequest(
                         "Salary", new BigDecimal("5000"), null, "2026-10-17", "income");

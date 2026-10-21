@@ -6,6 +6,8 @@ export default function TransactionModal({ type, transaction, onClose, onSubmit 
   const [categorySaving, setCategorySaving] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState(transaction?.category ?? "")
+  const [remember, setRemember] = useState(false)
   const income = type === "income"
   const now = transaction ? new Date(transaction.date) : new Date()
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
@@ -32,6 +34,7 @@ export default function TransactionModal({ type, transaction, onClose, onSubmit 
         title: form.notes.value.trim(),
         amount: Number(form.amount.value),
         category: form.category.value,
+        ...(!income && { rememberCategory: Boolean(form.category.value && remember) }),
         date: transaction && form.date.value === today ? transaction.date : form.date.value,
       })
     } catch (err) {
@@ -130,7 +133,8 @@ export default function TransactionModal({ type, transaction, onClose, onSubmit 
               maxLength={200}
             />
           </label>
-          {!income && <small className="field-hint">Auto-detect uses your description. Include a merchant or purpose, such as “Uber ride” or “School tuition”.</small>}
+          {!income && <small className="field-hint">Auto-detect checks your remembered choices first, then uses the description to suggest a category.</small>}
+          {transaction?.categoryStatus === "remembered" && <p className="field-hint">This category came from your personal rule. Choose another category to change only this expense, or remember the new choice for future matches.</p>}
           {transaction?.categoryStatus === "unavailable" && <p role="status">Auto-categorization was unavailable. Select Auto-detect to try again, or choose a category.</p>}
           {transaction?.categoryStatus === "needs_review" && <p role="status">This description needs review. Add detail and select Auto-detect, or choose a category.</p>}
           <div className="transaction-details-grid">
@@ -138,6 +142,10 @@ export default function TransactionModal({ type, transaction, onClose, onSubmit 
               type={type}
               defaultValue={transaction?.category ?? ""}
               onBusyChange={setCategorySaving}
+              onValueChange={(value) => {
+                setSelectedCategory(value)
+                setRemember(false)
+              }}
             />
             <label className="form-field" htmlFor="transaction-date">
               Date
@@ -150,6 +158,38 @@ export default function TransactionModal({ type, transaction, onClose, onSubmit 
               />
             </label>
           </div>
+          {!income && (
+            <div className="category-memory-choice">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={remember && Boolean(selectedCategory)}
+                  disabled={!selectedCategory || categorySaving}
+                  onChange={(event) => setRemember(event.target.checked)}
+                  aria-describedby="category-memory-help"
+                />
+                Remember for this description
+              </label>
+              <small id="category-memory-help">
+                {selectedCategory
+                  ? "Use this category for future expenses with the same description, ignoring case and spacing. Your choice stays in your account. Existing expenses stay as they are."
+                  : "Choose a category to remember it. Leave Auto-detect selected to use your personal rules and the model."}
+              </small>
+            </div>
+          )}
+          {transaction?.categoryHistory?.length > 0 && (
+            <details className="category-correction-history">
+              <summary>Category correction history</summary>
+              <ul>
+                {[...transaction.categoryHistory].reverse().map((change, index) => (
+                  <li key={index}>
+                    {change.previousCategory} → {change.category}
+                    {" · "}{new Date(change.correctedAt).toLocaleDateString()}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
           {error && (
             <div className="form-error" role="alert">
               {error}

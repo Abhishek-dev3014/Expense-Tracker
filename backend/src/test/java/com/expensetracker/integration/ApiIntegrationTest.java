@@ -83,6 +83,7 @@ class ApiIntegrationTest {
                         "users",
                         "transactions",
                         "categories",
+                        "categoryrules",
                         "budgets",
                         "goals",
                         "recurringtransactions",
@@ -741,6 +742,328 @@ class ApiIntegrationTest {
         assertThat(tx.get("categoryStatus").asString()).isEqualTo("unavailable");
         assertThat(call(get("/api/insights"), token, null, 200).get("insights").size())
                 .isPositive();
+    }
+
+    @Test
+    void personalRulesAreExplicitPrivateAndAppliedDuringModelOutages() throws Exception {
+        String alice = signup("alice-memory@example.com"), bob = signup("bob-memory@example.com");
+        var first =
+                call(
+                        post("/api/expense"),
+                        alice,
+                        Map.of(
+                                "title",
+                                "Uber travel",
+                                "amount",
+                                180,
+                                "category",
+                                "Transport",
+                                "rememberCategory",
+                                true),
+                        201);
+        assertThat(first.get("categoryRuleSaved").asBoolean()).isTrue();
+        assertThat(first.get("categoryStatus").asString()).isEqualTo("manual");
+        var ruleIndexes =
+                mongo.getCollection("categoryrules").listIndexes().into(new ArrayList<>());
+        assertThat(ruleIndexes)
+                .anyMatch(
+                        index ->
+                                "user_description".equals(index.getString("name"))
+                                        && Boolean.TRUE.equals(index.getBoolean("unique")));
+
+        var matched =
+                call(
+                        post("/api/expense"),
+                        alice,
+                        Map.of("title", "  Ｕｂｅｒ   TRAVEL  ", "amount", 200),
+                        201);
+        assertThat(matched.get("category").asString()).isEqualTo("Transport");
+        assertThat(matched.get("categoryStatus").asString()).isEqualTo("remembered");
+        assertThat(matched.get("aiConfidence").asDouble()).isZero();
+        var otherUser =
+                call(post("/api/expense"), bob, Map.of("title", "Uber travel", "amount", 200), 201);
+        assertThat(otherUser.get("categoryStatus").asString()).isEqualTo("unavailable");
+        var different =
+                call(post("/api/expense"), alice, Map.of("title", "Uber Eats", "amount", 300), 201);
+        assertThat(different.get("categoryStatus").asString()).isEqualTo("unavailable");
+        var manual = expense(alice, "Uber travel", "Travel", 100, "2026-10-21");
+        assertThat(manual.get("category").asString()).isEqualTo("Travel");
+        var rules = call(get("/api/category-rules"), alice, null, 200);
+        assertThat(rules.size()).isEqualTo(1);
+        assertThat(call(get("/api/category-rules"), bob, null, 200).size()).isZero();
+        String id = rules.get(0).get("_id").asString();
+        call(
+                put("/api/category-rules/" + id),
+                bob,
+                Map.of("description", "Uber travel", "category", "Food", "enabled", true),
+                404);
+        call(delete("/api/category-rules/" + id), bob, null, 404);
+        call(get("/api/category-rules"), null, null, 401);
+        call(
+                put("/api/category-rules/" + id),
+                null,
+                Map.of("description", "Uber travel", "category", "Food", "enabled", true),
+                401);
+        call(delete("/api/category-rules/" + id), null, null, 401);
+    }
+
+    @Test
+    void correctionHistoryAndCustomCategoryMemoryPersistWithoutRewritingOtherExpenses()
+            throws Exception {
+        String token = signup("correction@example.com");
+        call(
+                post("/api/categories"),
+                token,
+                Map.of("name", "Office commute", "type", "expense"),
+                201);
+        var original =
+                call(
+                        post("/api/expense"),
+                        token,
+                        Map.of("title", "Uber travel", "amount", 180),
+                        201);
+        String id = original.get("_id").asString();
+        var corrected =
+                call(
+                        put("/api/transactions/" + id),
+                        token,
+                        Map.of(
+                                "title",
+                                "Uber travel",
+                                "amount",
+                                180,
+                                "category",
+                                "Office commute",
+                                "rememberCategory",
+                                true),
+                        200);
+        assertThat(corrected.get("categoryHistory").size()).isEqualTo(1);
+        assertThat(corrected.get("categoryHistory").get(0).get("previousCategory").asString())
+                .isEqualTo("General");
+        assertThat(corrected.get("categoryHistory").get(0).get("previousStatus").asString())
+                .isEqualTo("unavailable");
+        assertThat(corrected.get("categoryHistory").get(0).get("category").asString())
+                .isEqualTo("Office commute");
+        var subsequent =
+                call(
+                        post("/api/expense"),
+                        token,
+                        Map.of("title", "Uber travel", "amount", 220),
+                        201);
+        assertThat(subsequent.get("category").asString()).isEqualTo("Office commute");
+        var edited =
+                call(
+                        put("/api/transactions/" + id),
+                        token,
+                        Map.of("title", "Uber travel", "amount", 185, "category", "Office commute"),
+                        200);
+        assertThat(edited.get("categoryHistory").size()).isEqualTo(1);
+        var rule = call(get("/api/category-rules"), token, null, 200).get(0);
+        String ruleId = rule.get("_id").asString();
+        call(
+                put("/api/category-rules/" + ruleId),
+                token,
+                Map.of("description", "Uber travel", "category", "Travel", "enabled", false),
+                200);
+        assertThat(
+                        call(
+                                        post("/api/expense"),
+                                        token,
+                                        Map.of("title", "Uber travel", "amount", 50),
+                                        201)
+                                .get("categoryStatus")
+                                .asString())
+                .isEqualTo("unavailable");
+        call(
+                put("/api/category-rules/" + ruleId),
+                token,
+                Map.of("description", "Uber travel", "category", "Travel", "enabled", true),
+                200);
+        assertThat(
+                        call(
+                                        post("/api/expense"),
+                                        token,
+                                        Map.of("title", "Uber travel", "amount", 50),
+                                        201)
+                                .get("category")
+                                .asString())
+                .isEqualTo("Travel");
+        call(delete("/api/category-rules/" + ruleId), token, null, 204);
+        assertThat(call(get("/api/category-rules"), token, null, 200).size()).isZero();
+        assertThat(mongo.findById(id, Transaction.class).getCategory()).isEqualTo("Office commute");
+        assertThat(mongo.findById(id, Transaction.class).getCategoryHistory()).hasSize(1);
+        assertThat(
+                        mongo.getCollection("transactions")
+                                .find(new Document("_id", new ObjectId(id)))
+                                .first())
+                .doesNotContainKey("categoryRuleSaved");
+    }
+
+    @Test
+    void importsUseMemoryButNeverTeachItAndManualOverridesAreOneOff() throws Exception {
+        String token = signup("import-memory@example.com");
+        call(
+                post("/api/expense"),
+                token,
+                Map.of(
+                        "title",
+                        "Uber ride",
+                        "amount",
+                        100,
+                        "category",
+                        "Transport",
+                        "rememberCategory",
+                        true),
+                201);
+        call(
+                post("/api/batch"),
+                token,
+                Map.of(
+                        "transactions",
+                        List.of(
+                                Map.of("title", "UBER  RIDE", "amount", 180, "type", "expense"),
+                                Map.of(
+                                        "title",
+                                        "Uber ride",
+                                        "amount",
+                                        80,
+                                        "type",
+                                        "expense",
+                                        "category",
+                                        "Travel"),
+                                Map.of("title", "Uber ride", "amount", 50, "type", "income"))),
+                201);
+        var docs = mongo.findAll(Transaction.class);
+        assertThat(docs).filteredOn(tx -> "remembered".equals(tx.getCategoryStatus())).hasSize(1);
+        assertThat(docs).filteredOn(tx -> "Travel".equals(tx.getCategory())).hasSize(1);
+        assertThat(docs)
+                .filteredOn(tx -> "income".equals(tx.getType()))
+                .allMatch(tx -> "Income".equals(tx.getCategory()));
+        assertThat(
+                        call(get("/api/category-rules"), token, null, 200)
+                                .get(0)
+                                .get("category")
+                                .asString())
+                .isEqualTo("Transport");
+        call(
+                post("/api/expense"),
+                token,
+                Map.of("title", "Coffee", "amount", 60, "category", "Food"),
+                201);
+        assertThat(call(get("/api/category-rules"), token, null, 200).size()).isEqualTo(1);
+        assertThat(
+                        call(
+                                        post("/api/expense"),
+                                        token,
+                                        Map.of("title", "Coffee", "amount", 60),
+                                        201)
+                                .get("categoryStatus")
+                                .asString())
+                .isEqualTo("unavailable");
+    }
+
+    @Test
+    void invalidMemoryChoicesFailBeforeSavingAndDuplicateDescriptionsHaveOneRule()
+            throws Exception {
+        String token = signup("validation-memory@example.com");
+        call(
+                post("/api/expense"),
+                token,
+                Map.of("title", "Uber", "amount", 180, "rememberCategory", true),
+                400);
+        call(
+                post("/api/expense"),
+                token,
+                Map.of(
+                        "title",
+                        "Uber",
+                        "amount",
+                        180,
+                        "category",
+                        "Unsaved category",
+                        "rememberCategory",
+                        true),
+                400);
+        call(
+                post("/api/income"),
+                token,
+                Map.of(
+                        "title",
+                        "Salary",
+                        "amount",
+                        180,
+                        "category",
+                        "Salary",
+                        "rememberCategory",
+                        true),
+                400);
+        call(
+                post("/api/batch"),
+                token,
+                Map.of(
+                        "transactions",
+                        List.of(
+                                Map.of(
+                                        "title",
+                                        "Uber",
+                                        "amount",
+                                        100,
+                                        "category",
+                                        "Transport",
+                                        "type",
+                                        "expense",
+                                        "rememberCategory",
+                                        true))),
+                400);
+        assertThat(mongo.findAll(Transaction.class)).isEmpty();
+        call(
+                post("/api/expense"),
+                token,
+                Map.of(
+                        "title",
+                        "Uber",
+                        "amount",
+                        180,
+                        "category",
+                        "Transport",
+                        "rememberCategory",
+                        true),
+                201);
+        call(
+                post("/api/expense"),
+                token,
+                Map.of(
+                        "title",
+                        "UBER",
+                        "amount",
+                        180,
+                        "category",
+                        "Travel",
+                        "rememberCategory",
+                        true),
+                201);
+        var rules = call(get("/api/category-rules"), token, null, 200);
+        assertThat(rules.size()).isEqualTo(1);
+        assertThat(rules.get(0).get("category").asString()).isEqualTo("Travel");
+        call(
+                post("/api/expense"),
+                token,
+                Map.of(
+                        "title",
+                        "Coffee",
+                        "amount",
+                        60,
+                        "category",
+                        "Food",
+                        "rememberCategory",
+                        true),
+                201);
+        call(
+                put("/api/category-rules/" + rules.get(0).get("_id").asString()),
+                token,
+                Map.of("description", "Coffee", "category", "Transport", "enabled", true),
+                400);
+        assertThat(call(get("/api/category-rules"), token, null, 200).size()).isEqualTo(2);
     }
 
     @Test
