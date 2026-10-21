@@ -1,5 +1,6 @@
 // src/components/dashboard/SplitModal.jsx
 import { useState } from "react"
+import { LoadingIndicator } from "../ui/LoadingState"
 import axios from "axios"
 import { BASE_URL } from "../../utils/apiPaths"
 import { Users, X, Plus, Trash2, CheckCircle2, History } from "lucide-react"
@@ -171,7 +172,7 @@ const SplitModal = ({ isOpen, onClose, transaction, onRefresh }) => {
             onClick={handleSave}
             className="flex-1 py-4 rounded-lg bg-emerald-100 text-stone-800 font-semibold uppercase tracking-wide text-xs hover:bg-emerald-100 shadow-sm shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-40"
           >
-            {loading ? "Processing..." : isSocial ? "SEND REQUESTS" : "SAVE SPLITS"}
+            {loading ? <LoadingIndicator>Saving shared expense…</LoadingIndicator> : isSocial ? "SEND REQUESTS" : "SAVE SPLITS"}
           </button>
         </div>
       </div>

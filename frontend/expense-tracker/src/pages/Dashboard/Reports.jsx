@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { BASE_URL } from "../../utils/apiPaths"
 import { useAuth } from "../../context/AuthContext"
+import LoadingState, { LoadingIndicator } from "../../components/ui/LoadingState"
 import {
   FileText,
   Download,
@@ -115,15 +116,7 @@ const Reports = () => {
     }
   }
 
-  if (loading && !report) return (
-    <div className="flex flex-col items-center justify-center h-64 space-y-6">
-      <div className="relative">
-        <FileText className="text-indigo-500 animate-pulse" size={64} />
-        <div className="absolute inset-0 bg-emerald-50 hidden rounded-full animate-pulse" />
-      </div>
-      <p className="text-stone-600 font-semibold uppercase tracking-wide text-[10px]">Preparing your report…</p>
-    </div>
-  )
+  if (loading && !report) return <LoadingState variant="chart" cards={3} label="Preparing your monthly report…" />
 
   if (error) return (
     <div className="p-6 rounded-xl bg-rose-500/5 border border-rose-500/10 text-rose-700 text-center">
@@ -137,6 +130,9 @@ const Reports = () => {
 
   return (
     <div className="feature-page max-w-7xl mx-auto space-y-6 animate-in fade-in zoom-in duration-700 reports-page">
+      <div className="request-refresh-status no-print" role="status">
+        {loading && <LoadingIndicator>Updating your report…</LoadingIndicator>}
+      </div>
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -331,6 +327,7 @@ const Reports = () => {
           <div className="grid grid-cols-2 gap-4 no-print">
             <button
               onClick={exportToCSV}
+              disabled={loading}
               className="p-6 rounded-xl bg-white border border-stone-200 text-stone-800 font-semibold uppercase tracking-wide text-xs transition-all shadow-sm hover:bg-white flex flex-col items-center justify-center gap-3 active:scale-95"
             >
               <Download size={20} className="text-stone-600" />
@@ -338,6 +335,7 @@ const Reports = () => {
             </button>
             <button
               onClick={handlePrint}
+              disabled={loading}
               className="p-6 rounded-xl bg-emerald-100 text-stone-800 font-semibold uppercase tracking-wide text-xs transition-all shadow-sm shadow-indigo-500/20 hover:bg-emerald-100 flex flex-col items-center justify-center gap-3 active:scale-95 btn-primary"
             >
               <FileText size={20} />

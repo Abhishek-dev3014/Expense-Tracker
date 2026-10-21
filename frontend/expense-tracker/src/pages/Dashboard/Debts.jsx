@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { BASE_URL } from "../../utils/apiPaths"
+import LoadingState from "../../components/ui/LoadingState"
 import { Users, HandMetal, CheckCircle2, Search, ArrowUpRight, ArrowDownLeft } from "lucide-react"
 
 const Debts = () => {
@@ -66,7 +67,7 @@ const Debts = () => {
     }
   }
 
-  if (loading) return <div className="panel empty-state" role="status">Loading shared expenses…</div>
+  if (loading) return <LoadingState cards={2} label="Loading your shared expenses…" rows={3} />
 
   const totalOwedToMe = debts.reduce((acc, curr) => acc + curr.amount, 0)
   const totalIOwe = ious.reduce((acc, curr) => acc + (curr.status !== "settled" ? curr.amount : 0), 0)

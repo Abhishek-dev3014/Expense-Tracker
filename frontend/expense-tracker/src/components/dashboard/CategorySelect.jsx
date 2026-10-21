@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { Plus } from "lucide-react"
 import { BASE_URL } from "../../utils/apiPaths"
 import { useAuth } from "../../context/AuthContext"
+import { LoadingIndicator } from "../ui/LoadingState"
 
 const defaults = {
   expense: [
@@ -173,7 +174,7 @@ export default function CategorySelect({ type, defaultValue = "", onBusyChange =
       </select>
       {loading && (
         <small className="field-hint" role="status">
-          Loading saved categories…
+          <LoadingIndicator>Loading saved categories…</LoadingIndicator>
         </small>
       )}
       {loadError && (
@@ -235,7 +236,7 @@ export default function CategorySelect({ type, defaultValue = "", onBusyChange =
               disabled={saving}
               onClick={saveCategory}
             >
-              {saving ? "Saving…" : "Save category"}
+              {saving ? <LoadingIndicator>Saving category…</LoadingIndicator> : "Save category"}
             </button>
             <button
               type="button"

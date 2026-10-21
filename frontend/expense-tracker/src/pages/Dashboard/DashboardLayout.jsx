@@ -2,6 +2,7 @@ import { Outlet, Navigate, useLocation } from "react-router-dom"
 import { useState, useEffect, useRef, Suspense } from "react"
 import { Plus, ArrowDownLeft, CalendarDays } from "lucide-react"
 import Sidebar from "../../components/dashboard/Sidebar"
+import LoadingState from "../../components/ui/LoadingState"
 import Topbar from "../../components/dashboard/Topbar"
 import AddIncomeModal from "../../components/dashboard/AddIncomeModal"
 import AddExpenseModal from "../../components/dashboard/AddExpenseModal"
@@ -272,9 +273,7 @@ export default function DashboardLayout() {
           >
             <Suspense
               fallback={
-                <div className="empty-state" role="status">
-                  Loading your workspace…
-                </div>
+                <LoadingState label={`Loading ${title.toLowerCase()}…`} />
               }
             >
               <Outlet context={{ expensesOnly: Boolean(expensesOnly), onAddExpense: () => setShowExpense(true) }} />

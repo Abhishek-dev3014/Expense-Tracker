@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import CategorySelect from "./CategorySelect"
 import { X, ArrowRight } from "lucide-react"
+import { LoadingIndicator } from "../ui/LoadingState"
 export default function TransactionModal({ type, transaction, onClose, onSubmit }) {
   const dialog = useRef(null)
   const [categorySaving, setCategorySaving] = useState(false)
@@ -198,10 +199,11 @@ export default function TransactionModal({ type, transaction, onClose, onSubmit 
           <button
             type="submit"
             disabled={categorySaving}
+            aria-busy={saving}
             className="btn btn-primary"
             style={{ width: "100%", minHeight: 44, marginTop: 8 }}
           >
-            {saving ? "Saving…" : transaction ? "Save changes" : `Save ${type}`}
+            {saving ? <LoadingIndicator>Saving {type}…</LoadingIndicator> : transaction ? "Save changes" : `Save ${type}`}
             {!saving && <ArrowRight size={15} />}
           </button>
         </fieldset>

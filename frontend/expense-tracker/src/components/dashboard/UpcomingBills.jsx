@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowUpRight, CalendarCheck2 } from "lucide-react"
 import { BASE_URL } from "../../utils/apiPaths"
+import LoadingState from "../ui/LoadingState"
 import { formatCurrency } from "../../utils/finance"
 export default function UpcomingBills({ revision = 0 }) {
   const [bills, setBills] = useState([])
@@ -9,6 +10,7 @@ export default function UpcomingBills({ revision = 0 }) {
   useEffect(() => {
     const controller = new AbortController()
     const load = async () => {
+      setStatus("loading")
       try {
         const response = await fetch(`${BASE_URL}/api/recurring`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -56,11 +58,11 @@ export default function UpcomingBills({ revision = 0 }) {
           <ArrowUpRight size={16} />
         </Link>
       </div>
-      {status !== "ready" ? (
+      {status === "loading" ? (
+        <LoadingState variant="panel" label="Loading upcoming payments…" rows={3} />
+      ) : status === "error" ? (
         <div className="empty-state" role="status">
-          {status === "loading"
-            ? "Loading upcoming payments…"
-            : "Payments are unavailable. Open recurring payments to try again."}
+          Payments are unavailable. Open recurring payments to try again.
         </div>
       ) : bills.length ? (
         bills.slice(0, 3).map((bill) => (

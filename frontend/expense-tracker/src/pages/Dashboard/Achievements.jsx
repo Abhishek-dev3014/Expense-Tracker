@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react"
 import axios from "axios"
 import { BASE_URL } from "../../utils/apiPaths"
+import LoadingState from "../../components/ui/LoadingState"
 import {
   Medal,
   Flame,
@@ -67,9 +68,7 @@ const Achievements = () => {
       {/* Main Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {loading ? (
-            <div className="col-span-full h-64 flex items-center justify-center text-stone-500 italic">
-                Polishing your medals...
-            </div>
+            <div className="col-span-full"><LoadingState variant="cards" cards={3} label="Loading your financial milestones…" /></div>
         ) : (
           allBadges.map(badge => {
             const isUnlocked = data?.badges?.includes(badge.name)

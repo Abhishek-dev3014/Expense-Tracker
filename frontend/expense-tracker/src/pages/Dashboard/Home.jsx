@@ -20,6 +20,7 @@ import { useAuth } from "../../context/AuthContext"
 import { BASE_URL } from "../../utils/apiPaths"
 import { buildOverview, expensePage, formatCurrency } from "../../utils/finance"
 import StatsGrid from "../../components/dashboard/StatsGrid"
+import LoadingState, { LoadingIndicator } from "../../components/ui/LoadingState"
 import TransactionsTable from "../../components/dashboard/TransactionsTable"
 import EditTransactionModal from "../../components/dashboard/EditTransactionModal"
 import CategoryTransactionsModal from "../../components/dashboard/CategoryTransactionsModal"
@@ -107,22 +108,7 @@ export default function Home() {
       </div>
     )
   if (!data)
-    return (
-      <div className="space-y-5" aria-label="Loading overview" role="status">
-        <div
-          className={`stats-grid${expensesOnly ? " stats-grid-expenses" : ""}`}
-        >
-          {(expensesOnly ? [1, 2, 3] : [1, 2, 3, 4]).map((x) => (
-            <div key={x} className="panel h-36 animate-pulse bg-stone-100" />
-          ))}
-        </div>
-        <div className="overview-grid">
-          <div className="panel h-80 animate-pulse" />
-          <div className="panel h-80 animate-pulse" />
-        </div>
-        <span className="sr-only">Loading your financial overview</span>
-      </div>
-    )
+    return <LoadingState label="Loading your financial overview…" cards={expensesOnly ? 3 : 4} />
   const { monthlyIncome, monthlyExpense, months, categories } = data
   const chartData = chartMonths === 1 ? data.days : months.slice(-chartMonths)
   const toggleSeries = (series) => {
@@ -146,6 +132,9 @@ export default function Home() {
       }
   return (
     <div className="space-y-5 overview-home" aria-busy={loading}>
+      <div className="request-refresh-status" role="status">
+        {loading && <LoadingIndicator>Updating your overview…</LoadingIndicator>}
+      </div>
       <StatsGrid data={data} expensesOnly={expensesOnly} />
       <div className="spending-context">
         <span className="context-icon"><ChartNoAxesColumnIncreasing size={19} /></span>

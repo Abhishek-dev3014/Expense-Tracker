@@ -1,5 +1,6 @@
 // src/components/dashboard/ImportModal.jsx
 import { useState } from "react"
+import { LoadingIndicator } from "../ui/LoadingState"
 import axios from "axios"
 import { BASE_URL } from "../../utils/apiPaths"
 import { Upload, X, FileText } from "lucide-react"
@@ -43,6 +44,7 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
   }
 
   const handleImport = async () => {
+    if (importing) return
     try {
       setImporting(true)
       const token = localStorage.getItem("token")
@@ -65,10 +67,10 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-0">
-      <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={() => { if (!importing) onClose() }}></div>
 
       <div className="relative w-full max-w-2xl p-6 rounded-xl bg-white border border-stone-200 shadow-sm animate-in zoom-in-95 duration-300">
-        <button onClick={onClose} className="absolute top-8 right-8 text-stone-600 hover:text-stone-800 transition-colors">
+        <button onClick={onClose} disabled={importing} aria-label="Close import" className="absolute top-8 right-8 text-stone-600 hover:text-stone-800 transition-colors">
           <X size={24} />
         </button>
 
@@ -107,6 +109,7 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
                   <select
                     className="w-full px-6 py-4 rounded-lg bg-white border border-stone-200 text-stone-800 focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
                     value={mapping[field]}
+                    disabled={importing}
                     onChange={(e) => setMapping({...mapping, [field]: e.target.value})}
                   >
                     <option value="">Select Column</option>
@@ -118,7 +121,7 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
 
             <label className="form-field">
               Transaction type
-              <select value={mapping.type} onChange={e => setMapping({ ...mapping, type: e.target.value })}>
+              <select disabled={importing} value={mapping.type} onChange={e => setMapping({ ...mapping, type: e.target.value })}>
                 <option value="expense">All expenses</option>
                 <option value="income">All income</option>
                 <option value="signed">Negative amounts are expenses, positive amounts are income</option>
@@ -126,10 +129,11 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
             </label>
             <button
               onClick={handleImport}
+              aria-busy={importing}
               disabled={!mapping.title || !mapping.amount || !mapping.date || importing}
               className="w-full py-5 rounded-lg bg-emerald-100 hover:bg-emerald-100 text-stone-800 font-semibold uppercase tracking-wide text-sm transition-all shadow-sm shadow-emerald-500/20 active:scale-95 disabled:opacity-40"
             >
-              {importing ? "Importing Data..." : "Finalize Import"}
+              {importing ? <LoadingIndicator>Importing transactions…</LoadingIndicator> : "Finalize Import"}
             </button>
           </div>
         )}

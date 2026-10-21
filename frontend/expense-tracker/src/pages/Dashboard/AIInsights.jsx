@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { BASE_URL } from "../../utils/apiPaths"
+import LoadingState from "../../components/ui/LoadingState"
 import { useAuth } from "../../context/AuthContext"
 import {
   BrainCircuit,
@@ -95,12 +96,7 @@ const AIInsights = () => {
     return icons[iconName] || <Lightbulb size={20} />
   }
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center h-64 space-y-4">
-      <BrainCircuit className="text-indigo-500 animate-pulse" size={48} />
-      <p className="text-stone-600 animate-pulse font-medium">Loading your financial insights…</p>
-    </div>
-  )
+  if (loading) return <LoadingState variant="cards" cards={3} label="Loading your financial insights…" />
 
   if (error) return (
     <div className="p-8 rounded-xl bg-rose-500/5 border border-rose-500/10 flex items-center gap-4 text-rose-700">

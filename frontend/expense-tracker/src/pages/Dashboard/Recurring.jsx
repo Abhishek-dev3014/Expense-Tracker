@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react"
 import axios from "axios"
 import { BASE_URL } from "../../utils/apiPaths"
+import LoadingState, { LoadingIndicator } from "../../components/ui/LoadingState"
 import {
   RotateCcw,
   Plus,
@@ -57,7 +58,7 @@ const Recurring = () => {
       await axios.post(`${BASE_URL}/api/recurring/process`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      fetchRecurring()
+      await fetchRecurring()
       // Optional: Add a subtle notification here
     } catch (err) {
       console.error(err)
@@ -113,6 +114,8 @@ const Recurring = () => {
     }
   }
 
+  if (loading && items.length === 0) return <LoadingState cards={3} label="Loading your recurring payments…" rows={3} />
+
   return (
     <div className="feature-page max-w-7xl mx-auto space-y-6 animate-in fade-in duration-700">
 
@@ -126,7 +129,7 @@ const Recurring = () => {
             disabled={processing || items.length === 0}
             className="flex items-center gap-2 px-6 py-3 rounded-lg bg-white border border-stone-200 hover:bg-white text-stone-800 transition-all active:scale-95 disabled:opacity-50"
           >
-            {processing ? "Processing..." : "Process Pending"}
+            {processing ? <LoadingIndicator>Processing payments…</LoadingIndicator> : "Process Pending"}
           </button>
 
           <button
@@ -170,9 +173,7 @@ const Recurring = () => {
       {/* Main List */}
       <div className="grid grid-cols-1 gap-6">
         {loading ? (
-          <div className="h-64 flex items-center justify-center text-stone-600 italic">
-            Gathering your automation rules...
-          </div>
+          <LoadingState variant="table" label="Updating your recurring payments…" rows={3} />
         ) : items.length === 0 ? (
           <div className="p-20 text-center rounded-xl bg-white border-2 border-dashed border-stone-200">
             <RotateCcw size={48} className="mx-auto text-stone-500 mb-4" />

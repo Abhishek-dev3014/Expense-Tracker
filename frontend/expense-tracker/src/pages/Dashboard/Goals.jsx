@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react"
 import axios from "axios"
 import { BASE_URL } from "../../utils/apiPaths"
+import LoadingState from "../../components/ui/LoadingState"
 import {
   Flag,
   Plus,
@@ -86,6 +87,8 @@ const Goals = () => {
     }
   }
 
+  if (loading && goals.length === 0) return <LoadingState cards={3} label="Loading your savings goals…" rows={3} />
+
   return (
     <div className="feature-page max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
@@ -138,9 +141,7 @@ const Goals = () => {
       {/* Goals Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {loading ? (
-          <div className="col-span-full h-64 flex items-center justify-center text-stone-600">
-            Mapping your financial future...
-          </div>
+          <div className="col-span-full"><LoadingState variant="cards" cards={2} label="Updating your savings goals…" /></div>
         ) : goals.length === 0 ? (
           <div className="col-span-full p-24 text-center rounded-xl bg-white border-2 border-dashed border-stone-200">
             <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6">

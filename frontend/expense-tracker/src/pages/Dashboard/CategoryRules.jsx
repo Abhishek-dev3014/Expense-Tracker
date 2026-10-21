@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { Pencil, Pause, Play, Trash2, Tags } from "lucide-react"
 import CategorySelect from "../../components/dashboard/CategorySelect"
+import LoadingState, { LoadingIndicator } from "../../components/ui/LoadingState"
 import { useAuth } from "../../context/AuthContext"
 import { BASE_URL } from "../../utils/apiPaths"
 
@@ -100,7 +101,7 @@ export default function CategoryRules() {
       </section>
       {error && <div className="form-error" role="alert">{error} <button className="text-link" onClick={() => load()} disabled={busy}>Refresh rules</button></div>}
       {notice && <p className="category-memory-notice" role="status">{notice}</p>}
-      {loading ? <p role="status">Loading category memory…</p> : rules.length === 0 ? (
+      {loading ? <LoadingState variant="table" label="Loading your remembered categories…" rows={3} /> : rules.length === 0 ? (
         <section className="panel empty-state">
           <h2>No remembered categories yet</h2>
           <p>Try correcting an expense such as “Uber travel”, then remember your preferred category.</p>
@@ -122,7 +123,7 @@ export default function CategoryRules() {
                     </label>
                     <CategorySelect id="rule-category" type="expense" defaultValue={rule.category} onBusyChange={setCategoryBusy} allowAutoDetect={false} />
                     <div className="category-memory-actions">
-                      <button className="btn btn-primary" disabled={busy || categoryBusy}>Save rule</button>
+                      <button className="btn btn-primary" disabled={busy || categoryBusy} aria-busy={busy}>{busy ? <LoadingIndicator>Saving rule…</LoadingIndicator> : "Save rule"}</button>
                       <button type="button" className="btn" disabled={busy || categoryBusy} onClick={() => setEditing(null)}>Cancel</button>
                     </div>
                   </fieldset>

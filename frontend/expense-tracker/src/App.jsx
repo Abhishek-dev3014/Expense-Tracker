@@ -5,6 +5,7 @@ import Login from "./pages/Auth/Login"
 import SignUp from "./pages/Auth/SignUp"
 
 import DashboardLayout from "./pages/Dashboard/DashboardLayout"
+import LoadingState from "./components/ui/LoadingState"
 const Home = lazy(() => import("./pages/Dashboard/Home"))
 const Analytics = lazy(() => import("./pages/Dashboard/Analytics"))
 const Transactions = lazy(() => import("./pages/Dashboard/Transactions"))
@@ -21,9 +22,7 @@ const App = () => {
   return (
     <Suspense
       fallback={
-        <div className="empty-state" role="status">
-          Loading your workspace…
-        </div>
+        <div className="app-loading"><LoadingState label="Opening your FinTrack workspace…" /></div>
       }
     >
       <Routes>

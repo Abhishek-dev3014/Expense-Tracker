@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useAuth } from "../../context/AuthContext"
 import { BASE_URL } from "../../utils/apiPaths"
 import useReducedMotion from "../../hooks/useReducedMotion"
+import LoadingState from "../../components/ui/LoadingState"
 import {
   BarChart,
   Bar,
@@ -65,16 +66,28 @@ const Analytics = () => {
   const { token } = useAuth()
   const authToken = token || localStorage.getItem("token")
   const [data, setData] = useState(null)
+  const [error, setError] = useState("")
+  const [revision, setRevision] = useState(0)
 
   useEffect(() => {
+    const controller = new AbortController()
     fetch(`${BASE_URL}/api/dashboard`, {
       headers: { Authorization: `Bearer ${authToken}` },
+      signal: controller.signal,
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Analytics could not load. Please try again.")
+        return res.json()
+      })
       .then(setData)
-  }, [authToken])
+      .catch((err) => {
+        if (err.name !== "AbortError") setError("Analytics could not load. Please check your connection and try again.")
+      })
+    return () => controller.abort()
+  }, [authToken, revision])
 
-  if (!data) return null
+  if (error) return <div className="panel empty-state" role="alert"><p>{error}</p><button className="btn" onClick={() => { setError(""); setRevision((value) => value + 1) }}>Try again</button></div>
+  if (!data) return <LoadingState variant="chart" label="Loading your spending trends…" />
 
   // 1️⃣ MoM Calculation Logic
   const now = new Date()

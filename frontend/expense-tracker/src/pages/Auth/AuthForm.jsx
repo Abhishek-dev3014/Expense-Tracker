@@ -12,6 +12,7 @@ import { AUTH_API } from "../../utils/apiPaths"
 import { authenticate } from "../../utils/authRequest"
 import { useAuth } from "../../context/AuthContext"
 import Brand from "../../components/ui/Brand"
+import { LoadingIndicator } from "../../components/ui/LoadingState"
 export default function AuthForm({ signup = false }) {
   const { login } = useAuth()
   const navigate = useNavigate()
@@ -192,8 +193,8 @@ export default function AuthForm({ signup = false }) {
               disabled={loading}
               style={{ width: "100%", minHeight: 45, marginTop: 6 }}
             >
-              {loading ? "Please wait…" : signup ? "Create account" : "Sign in"}
-              <ArrowRight size={15} />
+              {loading ? <LoadingIndicator>{signup ? "Creating account…" : "Signing in…"}</LoadingIndicator> : signup ? "Create account" : "Sign in"}
+              {!loading && <ArrowRight size={15} />}
             </button>
           </fieldset>
         </form>

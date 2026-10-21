@@ -19,6 +19,7 @@ import { PERIODS, transactionParams, transactionDay } from "../../utils/transact
 import ImportModal from "../../components/dashboard/ImportModal"
 import SplitModal from "../../components/dashboard/SplitModal"
 import EditTransactionModal from "../../components/dashboard/EditTransactionModal"
+import LoadingState, { LoadingIndicator } from "../../components/ui/LoadingState"
 import { BASE_URL } from "../../utils/apiPaths"
 
 export default function Transactions() {
@@ -160,7 +161,7 @@ export default function Transactions() {
           <p className="ledger-description">Find an expense, check the details, or pick up where you left off.</p>
         </div>
         <span className="ledger-count" role="status">
-          {loading ? "Loading…" : `${total} ${total === 1 ? "transaction" : "transactions"}`}
+          {loading ? <LoadingIndicator>Updating…</LoadingIndicator> : `${total} ${total === 1 ? "transaction" : "transactions"}`}
         </span>
       </div>
       <div className="transaction-toolbar">
@@ -230,9 +231,7 @@ export default function Transactions() {
         </div>
       )}
       {loading ? (
-        <div className="empty-state" role="status">
-          Loading transactions…
-        </div>
+        <LoadingState variant="table" label="Loading your transactions…" rows={6} />
       ) : error ? null : transactions.length ? (
         <div className="table-scroll">
           <table className="activity-table">

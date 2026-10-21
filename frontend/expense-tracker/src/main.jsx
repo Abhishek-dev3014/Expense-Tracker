@@ -6,6 +6,7 @@ import { AuthProvider } from "./context/AuthContext"
 import './index.css'
 import './styles/experience.css'
 import './styles/tracking.css'
+import './styles/loading.css'
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>

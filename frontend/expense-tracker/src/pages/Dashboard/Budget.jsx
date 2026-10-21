@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react"
 import axios from "axios"
 import { BASE_URL } from "../../utils/apiPaths"
 import { useAuth } from "../../context/AuthContext"
+import LoadingState, { LoadingIndicator } from "../../components/ui/LoadingState"
 import {
   Target,
   Wallet,
@@ -19,22 +20,28 @@ const Budget = () => {
   const [monthlyLimit, setMonthlyLimit] = useState("")
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
 
   const fetchBudget = useCallback(async () => {
+    setLoading(true)
     try {
       const res = await axios.get(`${BASE_URL}/api/budget`, {
         headers: { Authorization: `Bearer ${authToken}` },
       })
       setData(res.data)
+      setError("")
     } catch (err) {
       console.error(err)
+      setError("Your budget could not load. Please try again.")
     } finally {
       setLoading(false)
     }
   }, [authToken])
 
   const saveBudget = async () => {
-    if (!monthlyLimit || monthlyLimit <= 0) return
+    if (!monthlyLimit || monthlyLimit <= 0 || saving) return
+    setSaving(true)
     try {
       await axios.post(
         `${BASE_URL}/api/budget`,
@@ -42,9 +49,12 @@ const Budget = () => {
         { headers: { Authorization: `Bearer ${authToken}` } }
       )
       setMonthlyLimit("")
-      fetchBudget()
+      await fetchBudget()
     } catch (err) {
       console.error(err)
+      setError("Your budget could not be saved. Please try again.")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -76,10 +86,12 @@ const Budget = () => {
     return <CheckCircle2 className="text-emerald-800" size={18} />
   }
 
-  if (loading) return null
+  if (loading && !data) return <LoadingState variant="chart" cards={3} label="Loading your monthly budget…" />
+  if (error && !data) return <div className="panel empty-state" role="alert"><p>{error}</p><button className="btn" onClick={fetchBudget}>Try again</button></div>
 
   return (
     <div className="feature-page max-w-7xl mx-auto space-y-6 animate-in fade-in duration-700">
+      {error && <p className="form-error" role="alert">{error}</p>}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
@@ -200,6 +212,7 @@ const Budget = () => {
                   <input
                     type="number"
                     value={monthlyLimit}
+                    disabled={saving}
                     onChange={(e) => setMonthlyLimit(e.target.value)}
                     placeholder="e.g. 50000"
                     className="w-full pl-10 pr-4 py-4 bg-white border border-stone-200 rounded-lg text-stone-800 focus:outline-none focus:border-emerald-200 transition-all font-semibold"
@@ -209,10 +222,11 @@ const Budget = () => {
 
               <button
                 onClick={saveBudget}
-                disabled={!monthlyLimit || monthlyLimit <= 0}
+                disabled={!monthlyLimit || monthlyLimit <= 0 || saving}
+                aria-busy={saving}
                 className="w-full py-4 bg-emerald-100 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-stone-800 font-bold transition-all shadow-sm shadow-indigo-500/20 flex items-center justify-center gap-2 btn-primary"
               >
-                Set New Budget
+                {saving ? <LoadingIndicator>Saving budget…</LoadingIndicator> : "Set New Budget"}
               </button>
             </div>
 
