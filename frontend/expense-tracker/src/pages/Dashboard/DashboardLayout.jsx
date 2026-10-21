@@ -7,6 +7,7 @@ import AddIncomeModal from "../../components/dashboard/AddIncomeModal"
 import AddExpenseModal from "../../components/dashboard/AddExpenseModal"
 import TutorialOverlay from "../../components/dashboard/TutorialOverlay"
 import { BASE_URL } from "../../utils/apiPaths"
+import { transactionNotice } from "../../utils/transactionNotice"
 import { useAuth } from "../../context/AuthContext"
 import axios from "axios"
 import toast, { Toaster } from "react-hot-toast"
@@ -40,6 +41,7 @@ const pages = {
     "The good habits you are building, one day at a time.",
   ],
   debts: ["Shared expenses", "Keep shared costs and balances easy to follow."],
+  "category-rules": ["Category memory", "Your choices, remembered for future expenses."],
 }
 
 function readOverviewPreference(key) {
@@ -161,11 +163,14 @@ export default function DashboardLayout() {
       },
       body: JSON.stringify(data),
     })
+    const saved = await response.json().catch(() => ({}))
     if (!response.ok)
-      throw new Error(`Could not save your ${type}. Please try again.`)
+      throw new Error(saved.message || `Could not save your ${type}. Please try again.`)
     setShowIncome(false)
     setShowExpense(false)
-    toast.success(`${type === "income" ? "Income" : "Expense"} added`)
+    const notice = transactionNotice(saved, type)
+    if (notice.kind === "success") toast.success(notice.message)
+    else toast(notice.message, { duration: 8000 })
     window.dispatchEvent(new Event("transactions-updated"))
   }
   return (

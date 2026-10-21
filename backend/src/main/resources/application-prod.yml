@@ -3,6 +3,17 @@
 server:
   forward-headers-strategy: native
 spring:
+  # Defer non-essential singleton creation until first use. The entrypoint
+  # accepts Catalyst's connection while Spring finishes this remaining work.
+  main:
+    lazy-initialization: true
+  data:
+    mongodb:
+      # Catalyst terminates an instance that does not open its configured port promptly.
+      # Index creation contacts MongoDB during Spring's bootstrap, so keep it out of
+      # the request-serving startup path in production. Local development retains
+      # the default auto-index-creation setting from application.yml.
+      auto-index-creation: false
   lifecycle:
     timeout-per-shutdown-phase: 20s
 app:

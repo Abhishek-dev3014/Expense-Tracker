@@ -15,6 +15,7 @@ const Recurring = lazy(() => import("./pages/Dashboard/Recurring"))
 const Goals = lazy(() => import("./pages/Dashboard/Goals"))
 const Achievements = lazy(() => import("./pages/Dashboard/Achievements"))
 const Debts = lazy(() => import("./pages/Dashboard/Debts"))
+const CategoryRules = lazy(() => import("./pages/Dashboard/CategoryRules"))
 
 const App = () => {
   return (
@@ -42,6 +43,7 @@ const App = () => {
           <Route path="goals" element={<Goals />} />
           <Route path="achievements" element={<Achievements />} />
           <Route path="debts" element={<Debts />} />
+          <Route path="category-rules" element={<CategoryRules />} />
         </Route>
 
         {/* Fallback */}

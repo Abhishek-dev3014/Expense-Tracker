@@ -2,7 +2,9 @@
 import { useState } from "react"
 import axios from "axios"
 import { BASE_URL } from "../../utils/apiPaths"
-import { Upload, X, Check, AlertCircle, FileText, ArrowRight } from "lucide-react"
+import { Upload, X, FileText } from "lucide-react"
+
+import { parseStatementCsv, importTransactions } from "../../utils/importTransactions"
 
 const ImportModal = ({ isOpen, onClose, onRefresh }) => {
   const [file, setFile] = useState(null)
@@ -14,6 +16,7 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
     amount: "",
     type: "expense" // Default type
   })
+  const [error, setError] = useState("")
   const [step, setStep] = useState(1) // 1: Upload, 2: Map, 3: Review/Categorize
   const [importing, setImporting] = useState(false)
 
@@ -26,14 +29,15 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
 
     const reader = new FileReader()
     reader.onload = (event) => {
-      const text = event.target.result
-      const rows = text.split("\n").map(row => row.split(",").map(cell => cell.trim()))
-      const headers = rows[0]
-      const values = rows.slice(1).filter(row => row.length === headers.length && row.some(cell => cell !== ""))
-
-      setHeaders(headers)
-      setData(values)
-      setStep(2)
+      try {
+        const { headers, data } = parseStatementCsv(event.target.result)
+        setHeaders(headers)
+        setData(data)
+        setError("")
+        setStep(2)
+      } catch (err) {
+        setError(err.message)
+      }
     }
     reader.readAsText(file)
   }
@@ -43,19 +47,8 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
       setImporting(true)
       const token = localStorage.getItem("token")
 
-      const transactions = data.map(row => {
-        const amount = parseFloat(row[headers.indexOf(mapping.amount)])
-        return {
-          title: row[headers.indexOf(mapping.title)],
-          amount: Math.abs(amount),
-          type: amount < 0 ? "expense" : "income",
-          date: new Date(row[headers.indexOf(mapping.date)]),
-          category: "General" // We can add AI categorization here later or on frontend before send
-        }
-      })
-
-      // Optional: AI Categorization here before sending
-      // For now, let's just send the batch
+      setError("")
+      const transactions = importTransactions(headers, data, mapping)
       await axios.post(`${BASE_URL}/api/transactions/batch`, { transactions }, {
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -64,8 +57,7 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
       onClose()
       setStep(1)
     } catch (err) {
-      console.error(err)
-      alert("Import failed. Please check the format.")
+      setError(err.response?.data?.message || err.message || "Import failed. Please check the format.")
     } finally {
       setImporting(false)
     }
@@ -81,7 +73,9 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
         </button>
 
         <h2 className="text-3xl font-bold text-stone-800 mb-2">Import Bank Statement</h2>
-        <p className="text-stone-600 mb-8">Rapidly upload your financial history via CSV.</p>
+        <p className="text-stone-600 mb-8">Import CSV transactions. Expense categories are detected automatically.</p>
+
+        {error && <p role="alert" className="form-error">{error}</p>}
 
         {step === 1 && (
           <div className="flex flex-col items-center justify-center border-2 border-dashed border-stone-200 rounded-xl p-12 hover:border-emerald-200 transition-all group bg-white">
@@ -122,6 +116,14 @@ const ImportModal = ({ isOpen, onClose, onRefresh }) => {
               ))}
             </div>
 
+            <label className="form-field">
+              Transaction type
+              <select value={mapping.type} onChange={e => setMapping({ ...mapping, type: e.target.value })}>
+                <option value="expense">All expenses</option>
+                <option value="income">All income</option>
+                <option value="signed">Negative amounts are expenses, positive amounts are income</option>
+              </select>
+            </label>
             <button
               onClick={handleImport}
               disabled={!mapping.title || !mapping.amount || !mapping.date || importing}

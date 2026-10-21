@@ -15,6 +15,7 @@ import {
   Wallet,
   X,
   ArrowUpRight,
+  Tags,
 } from "lucide-react"
 
 const sections = [
@@ -33,6 +34,7 @@ const sections = [
       ["goals", "Savings goals", Flag],
       ["recurring", "Recurring payments", Repeat2],
       ["debts", "Shared expenses", Wallet],
+      ["category-rules", "Category memory", Tags],
     ],
   },
   {

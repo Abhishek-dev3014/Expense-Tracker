@@ -7,6 +7,7 @@ backend/.env
 # Logs
 npm-debug.log*
 yarn-error.log*
+catalyst-debug.log*
 
 # OS files
 .DS_Store
@@ -30,3 +31,7 @@ __pycache__/
 
 # Frontend build artifacts
 frontend/expense-tracker/dist/
+
+# Generated Catalyst bundles and local deployment secrets
+/deployment/catalyst/
+ml-service/vendor/

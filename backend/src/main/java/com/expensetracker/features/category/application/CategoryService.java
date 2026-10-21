@@ -19,8 +19,12 @@ public class CategoryService {
                     "expense",
                             List.of(
                                     "Food",
+                                    "Grocery",
                                     "Transport",
+                                    "Travel",
                                     "Shopping",
+                                    "Clothing",
+                                    "Electronics",
                                     "Rent",
                                     "Utilities",
                                     "Entertainment",
@@ -35,6 +39,31 @@ public class CategoryService {
         return categories.findByUserAndTypeOrderByNameAsc(user, type).stream()
                 .map(Category::getName)
                 .toList();
+    }
+
+    public String requireExpenseCategory(String user, String name) {
+        if (name == null || name.isBlank())
+            throw ApiException.badRequest("Choose a category before remembering this description.");
+        String normalized =
+                Normalizer.normalize(name, Normalizer.Form.NFKC)
+                        .strip()
+                        .replaceAll("(?U)\\s+", " ");
+        if ("General".equalsIgnoreCase(normalized)) return "General";
+        return DEFAULTS.get("expense").stream()
+                .filter(value -> value.equalsIgnoreCase(normalized))
+                .findFirst()
+                .orElseGet(
+                        () ->
+                                categories
+                                        .findByUserAndTypeAndNormalizedName(
+                                                user,
+                                                "expense",
+                                                normalized.toLowerCase(Locale.ROOT))
+                                        .map(Category::getName)
+                                        .orElseThrow(
+                                                () ->
+                                                        ApiException.badRequest(
+                                                                "Save this custom expense category before remembering it.")));
     }
 
     public String create(String user, CreateCategoryRequest input) {

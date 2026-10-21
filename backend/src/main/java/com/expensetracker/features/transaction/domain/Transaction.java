@@ -29,6 +29,13 @@ public class Transaction extends BaseDocument {
     private String type;
     private String category = "General";
     private double aiConfidence;
+    private String categoryStatus = "manual";
+    private List<CategoryCorrection> categoryHistory = new ArrayList<>();
+
+    @org.springframework.data.annotation.Transient
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Boolean categoryRuleSaved;
+
     private Instant date;
     private List<SplitDetail> splitDetails = new ArrayList<>();
 }

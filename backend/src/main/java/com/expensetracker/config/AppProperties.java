@@ -14,5 +14,6 @@ public record AppProperties(
         Duration jwtTtl,
         @NotEmpty List<String> allowedOrigins,
         @NotBlank String mlServiceUrl,
+        String mlServiceApiKey,
         Duration mlTimeout,
         @NotBlank String timeZone) {}

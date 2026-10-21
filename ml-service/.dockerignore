@@ -1,0 +1,12 @@
+**
+!Dockerfile
+!requirements-catalyst.txt
+!app.py
+!start.py
+!model_artifacts/
+!model_artifacts/model.pkl
+!model_artifacts/vectorizer.pkl
+
+!text_processing.py
+!categorization.py
+!model_artifacts/metadata.json
