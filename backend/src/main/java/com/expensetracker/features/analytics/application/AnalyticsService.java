@@ -20,6 +20,7 @@ public class AnalyticsService {
     private final TransactionReadService transactions;
     private final BudgetService budgets;
     private final Clock clock;
+    private final AnalyticsPlanningService planning;
 
     public DashboardResponse overview(String user, int page) {
         var all = transactions.all(user);
@@ -46,8 +47,7 @@ public class AnalyticsService {
                 totals.income(),
                 totals.expense(),
                 totals.balance(),
-                current.income()
-                        .subtract(average.multiply(BigDecimal.valueOf(now.lengthOfMonth()))),
+                null, // Legacy projection retired; use the explicit readiness-gated planning API.
                 average,
                 limit,
                 recent,
@@ -71,83 +71,28 @@ public class AnalyticsService {
                 txs);
     }
 
+    /** Backward-compatible transport backed by the same period-aware insight engine. */
     public InsightsResponse insights(String user) {
-        var all = transactions.all(user);
-        var metrics = TransactionReadService.metrics(all);
-        double savings =
-                metrics.income().signum() == 0
-                        ? 0
-                        : metrics.balance().doubleValue() / metrics.income().doubleValue() * 100;
-        var result = new ArrayList<SpendingInsight>();
-        result.add(
-                savings < 20
-                        ? new SpendingInsight(
-                                "warning",
-                                "Your savings rate is below 20%. Review subscriptions and discretionary spending against your own goals.",
-                                "TrendingDown")
-                        : new SpendingInsight(
-                                "success",
-                                "You are saving "
-                                        + Math.round(savings)
-                                        + "% of your recorded income. Keep tracking progress toward your goals.",
-                                "ShieldCheck"));
-        var categories = TransactionReadService.breakdown(all);
-        if (!categories.isEmpty())
-            result.add(
-                    new SpendingInsight(
-                            "info",
-                            "Your top expense is "
-                                    + categories.getFirst().category()
-                                    + " (₹"
-                                    + categories.getFirst().amount().toPlainString()
-                                    + ").",
-                            "BarChart3"));
-        var now = LocalDate.now(clock);
-        var month = YearMonth.from(now);
-        budgets.find(user, month)
-                .filter(b -> b.getMonthlyLimit().signum() > 0)
-                .ifPresent(
-                        b -> {
-                            double spending =
-                                    TransactionReadService.metrics(transactions.month(user, month))
-                                                    .expense()
-                                                    .doubleValue()
-                                            / b.getMonthlyLimit().doubleValue();
-                            double elapsed = (double) now.getDayOfMonth() / now.lengthOfMonth();
-                            if (spending > elapsed + 0.15)
-                                result.add(
-                                        new SpendingInsight(
-                                                "warning",
-                                                "You have used "
-                                                        + Math.round(spending * 100)
-                                                        + "% of your monthly budget. Review your spending pace.",
-                                                "Zap"));
-                            else if (spending < elapsed - 0.1)
-                                result.add(
-                                        new SpendingInsight(
-                                                "success",
-                                                "Your spending is below your budget's pace this month.",
-                                                "ZapOff"));
-                        });
-        long uncategorized =
-                all.stream()
-                        .filter(
-                                tx ->
-                                        tx.getCategory() == null
-                                                || "General".equals(tx.getCategory()))
-                        .count();
-        if (uncategorized > 5)
-            result.add(
-                    new SpendingInsight(
-                            "tip",
-                            "You have "
-                                    + uncategorized
-                                    + " uncategorized transactions. Add categories for clearer insights.",
-                            "Tag"));
+        var data = planning.summary(user, null);
         return new InsightsResponse(
-                metrics.income(),
-                metrics.expense(),
-                String.format(Locale.ROOT, "%.2f", savings),
-                result);
+                data.summary().income(),
+                data.summary().spending(),
+                data.summary().savingsRate() == null
+                        ? null
+                        : data.summary().savingsRate().toPlainString(),
+                data.insights().stream()
+                        .map(
+                                i ->
+                                        new SpendingInsight(
+                                                "review".equals(i.tone())
+                                                        ? "warning"
+                                                        : "progress".equals(i.tone())
+                                                                ? "success"
+                                                                : "info",
+                                                i.message(),
+                                                "progress".equals(i.tone())
+                                                        ? "ShieldCheck"
+                                                        : "BarChart3"))
+                        .toList());
     }
 }

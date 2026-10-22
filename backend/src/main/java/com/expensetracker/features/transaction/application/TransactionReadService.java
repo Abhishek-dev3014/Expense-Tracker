@@ -23,6 +23,10 @@ public class TransactionReadService {
         return transactions.findByUserOrderByDateDesc(user);
     }
 
+    public List<Transaction> range(String user, Instant start, Instant endExclusive) {
+        return queries.inMonth(user, start, endExclusive);
+    }
+
     public long count(String user) {
         return transactions.countByUser(user);
     }

@@ -29,6 +29,28 @@ public class RecurringService {
     }
 
     public RecurringTransaction create(String user, CreateRecurringRequest input) {
+        return recurring.insert(make(user, input));
+    }
+
+    public RecurringTransaction confirmDetected(
+            String user,
+            String candidateId,
+            CreateRecurringRequest input,
+            List<String> sourceTransactionIds) {
+        String id = occurrenceId(user + ":" + candidateId, Instant.EPOCH);
+        var existing = recurring.findByIdAndUser(id, user);
+        if (existing.isPresent()) return existing.get();
+        var item = make(user, input);
+        item.setId(id);
+        item.setBaselineTransactionIds(List.copyOf(sourceTransactionIds));
+        try {
+            return recurring.insert(item);
+        } catch (org.springframework.dao.DuplicateKeyException conflict) {
+            return recurring.findByIdAndUser(id, user).orElseThrow(() -> conflict);
+        }
+    }
+
+    private RecurringTransaction make(String user, CreateRecurringRequest input) {
         var item = new RecurringTransaction();
         item.setUser(user);
         item.setTitle(input.title().strip());
@@ -38,7 +60,7 @@ public class RecurringService {
         item.setFrequency(input.frequency());
         item.setStartDate(Dates.parse(input.startDate(), clock.instant()));
         item.setNextOccurrence(item.getStartDate());
-        return recurring.insert(item);
+        return item;
     }
 
     public RecurringTransaction update(String user, String id, UpdateRecurringRequest input) {
@@ -77,6 +99,7 @@ public class RecurringService {
             // Deterministic ObjectId makes retry after a crash or a concurrent call idempotent.
             tx.setId(occurrenceId(item.getId(), item.getNextOccurrence()));
             tx.setUser(user);
+            tx.setRecurringScheduleId(item.getId());
             tx.setTitle(item.getTitle() + " (Recurring)");
             tx.setType(item.getType());
             tx.setAmount(

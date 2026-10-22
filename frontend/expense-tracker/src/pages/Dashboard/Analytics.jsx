@@ -1,480 +1,897 @@
-import { useEffect, useState } from "react"
-import { useAuth } from "../../context/AuthContext"
-import { BASE_URL } from "../../utils/apiPaths"
-import useReducedMotion from "../../hooks/useReducedMotion"
-import LoadingState from "../../components/ui/LoadingState"
+import { createElement, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
+  ArrowDownRight,
+  CalendarDays,
+  ChartNoAxesCombined,
+  Check,
+  ChevronRight,
+  Info,
+  Sparkles,
+  Target,
+} from "lucide-react";
+import {
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
   AreaChart,
   Area,
   CartesianGrid,
-} from "recharts"
-import {
-  TrendingUp,
-  TrendingDown,
-  Wallet,
-  ArrowUpRight,
-  Activity,
-  Calendar,
-  IndianRupee,
-  PieChart as PieIcon,
-} from "lucide-react"
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
+import { useAuth } from "../../context/AuthContext";
+import LoadingState, {
+  LoadingIndicator,
+} from "../../components/ui/LoadingState";
+import useReducedMotion from "../../hooks/useReducedMotion";
+import { planningRequest, localMonth } from "../../utils/planningApi";
+import { formatCurrency } from "../../utils/finance";
+import "../../styles/planning.css";
 
-const COLORS = ["#49765a", "#b5a6ca", "#d4ad72", "#a6bc87", "#dba99a"]
+const dateLabel = (value) =>
+  new Date(`${value}T12:00:00`).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+  });
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white backdrop-blur-xl border border-stone-200 p-4 rounded-xl shadow-sm space-y-2">
-        {label && (
-          <p className="text-stone-600 text-[10px] font-bold uppercase tracking-wide border-b border-stone-200 pb-2 mb-2">
-            {label}
-          </p>
-        )}
-        {payload.map((entry, index) => (
-          <div key={index} className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: entry.color || entry.payload?.fill }}
-              />
-              <p className="text-[11px] text-stone-600 font-medium capitalize">
-                {entry.name}
-              </p>
-            </div>
-            <p className="text-sm font-bold text-stone-800 ml-3.5 tracking-tight">
-              ₹{entry.value.toLocaleString()}
-            </p>
-          </div>
+function Evidence({ rows = [] }) {
+  if (!rows.length) return null;
+  return (
+    <details className="planning-evidence">
+      <summary>View supporting transactions</summary>
+      <p>Most recent supporting entries · up to six shown</p>
+      <ul>
+        {rows.map((row) => (
+          <li key={row.id}>
+            <span>
+              {row.description}
+              <small>
+                {dateLabel(row.date)} · {row.category}
+              </small>
+            </span>
+            <strong>{formatCurrency(Math.abs(row.amount))}</strong>
+          </li>
         ))}
-      </div>
-    )
-  }
-  return null
+      </ul>
+      <Link to="/dashboard/transactions">
+        Review your transactions <ChevronRight size={13} />
+      </Link>
+    </details>
+  );
 }
 
-const Analytics = () => {
-  const reducedMotion = useReducedMotion()
-  const { token } = useAuth()
-  const authToken = token || localStorage.getItem("token")
-  const [data, setData] = useState(null)
-  const [error, setError] = useState("")
-  const [revision, setRevision] = useState(0)
-
-  useEffect(() => {
-    const controller = new AbortController()
-    fetch(`${BASE_URL}/api/dashboard`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-      signal: controller.signal,
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Analytics could not load. Please try again.")
-        return res.json()
-      })
-      .then(setData)
-      .catch((err) => {
-        if (err.name !== "AbortError") setError("Analytics could not load. Please check your connection and try again.")
-      })
-    return () => controller.abort()
-  }, [authToken, revision])
-
-  if (error) return <div className="panel empty-state" role="alert"><p>{error}</p><button className="btn" onClick={() => { setError(""); setRevision((value) => value + 1) }}>Try again</button></div>
-  if (!data) return <LoadingState variant="chart" label="Loading your spending trends…" />
-
-  // 1️⃣ MoM Calculation Logic
-  const now = new Date()
-  const currentMonthIdx = now.getMonth()
-  const lastMonthIdx = currentMonthIdx === 0 ? 11 : currentMonthIdx - 1
-
-  const currentMonthData = { income: 0, expense: 0 }
-  const lastMonthData = { income: 0, expense: 0 }
-
-  data.allTransactions?.forEach((t) => {
-    const tDate = new Date(t.date)
-    const tMonth = tDate.getMonth()
-
-    if (tMonth === currentMonthIdx) {
-      if (t.amount > 0) currentMonthData.income += t.amount
-      else currentMonthData.expense += Math.abs(t.amount)
-    } else if (tMonth === lastMonthIdx) {
-      if (t.amount > 0) lastMonthData.income += t.amount
-      else lastMonthData.expense += Math.abs(t.amount)
-    }
-  })
-
-  const getPercentChange = (current, last) => {
-    if (last === 0) return current > 0 ? 100 : 0
-    return ((current - last) / last) * 100
-  }
-
-  const incomeChange = getPercentChange(
-    currentMonthData.income,
-    lastMonthData.income,
-  )
-  const expenseChange = getPercentChange(
-    currentMonthData.expense,
-    lastMonthData.expense,
-  )
-  const balanceChange = getPercentChange(
-    currentMonthData.income - currentMonthData.expense,
-    lastMonthData.income - lastMonthData.expense,
-  )
-
-  // 2️⃣ Monthly Data Logic (Sorting by month index for chart flow)
-  const monthly = {}
-  data.allTransactions?.forEach((t) => {
-    const date = new Date(t.date)
-    const month = date.toLocaleString("en-US", { month: "short" })
-    const monthKey = `${date.getFullYear()}-${date.getMonth()}`
-    if (!monthly[monthKey])
-      monthly[monthKey] = { month, income: 0, expense: 0, sortKey: monthKey }
-    if (t.amount > 0) monthly[monthKey].income += t.amount
-    else monthly[monthKey].expense += Math.abs(t.amount)
-  })
-  const barData = Object.values(monthly)
-    .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-    .slice(-6)
-
-  // 3️⃣ Category Data Logic
-  const categoryMap = {}
-  data.allTransactions?.forEach((t) => {
-    if (t.amount < 0) {
-      categoryMap[t.category] =
-        (categoryMap[t.category] || 0) + Math.abs(t.amount)
-    }
-  })
-  const pieData = Object.entries(categoryMap)
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value)
-
-  // 4️⃣ Daily Data Logic
-  const dailyData = {}
-  data.allTransactions?.forEach((t) => {
-    if (t.amount < 0) {
-      const day = new Date(t.date).toLocaleDateString("en-US", {
-        weekday: "short",
-      })
-      dailyData[day] = (dailyData[day] || 0) + Math.abs(t.amount)
-    }
-  })
-  const areaData = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
-    (day) => ({
-      day,
-      value: dailyData[day] || 0,
-    }),
-  )
-
-  const savingsRate =
-    data.totalIncome > 0
-      ? ((data.totalIncome - data.totalExpense) / data.totalIncome) * 100
-      : 0
-  const topCategories = pieData.slice(0, 3)
-
-  const metrics = [
-    {
-      label: "Net Balance",
-      value: data.totalBalance,
-      icon: Wallet,
-      color: "text-emerald-800",
-      bg: "bg-emerald-50",
-      change: balanceChange,
-    },
-    {
-      label: "Total Income",
-      value: data.totalIncome,
-      icon: TrendingUp,
-      color: "text-emerald-800",
-      bg: "bg-emerald-50",
-      change: incomeChange,
-    },
-    {
-      label: "Total Expenses",
-      value: data.totalExpense,
-      icon: TrendingDown,
-      color: "text-rose-700",
-      bg: "bg-rose-500/10",
-      change: expenseChange,
-    },
-    {
-      label: "Savings Rate",
-      value: `${savingsRate.toFixed(1)}%`,
-      icon: Activity,
-      color: "text-amber-700",
-      bg: "bg-amber-500/10",
-      change: null,
-    },
-  ]
-
+function Metric({ label, value, caption, icon = ChartNoAxesCombined }) {
   return (
-    <div className="feature-page max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
-      {/* Primary Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {metrics.map((item, idx) => (
-          <div
-            key={idx}
-            className="relative group p-6 rounded-xl bg-white backdrop-blur-xl border border-stone-200 transition-all duration-500 hover:bg-white hover:border-emerald-200 hover:-translate-y-1 shadow-sm"
-          >
-            <div
-              className={`absolute top-6 right-6 p-2.5 rounded-lg ${item.bg} ${item.color} shadow-inner`}
-            >
-              <item.icon size={20} />
-            </div>
-            <p className="text-stone-500 text-[10px] font-semibold uppercase tracking-wide">
-              {item.label}
-            </p>
-            <h3 className="text-2xl font-semibold text-stone-800 mt-2 tabular-nums tracking-tight">
-              {typeof item.value === "number"
-                ? `₹${item.value.toLocaleString()}`
-                : item.value}
-            </h3>
-
-            {item.change !== null && (
-              <div
-                className={`flex items-center gap-1.5 mt-5 text-[11px] font-bold ${item.change >= 0 ? "text-emerald-800" : "text-rose-700"}`}
-              >
-                {item.change >= 0 ? (
-                  <TrendingUp size={14} />
-                ) : (
-                  <TrendingDown size={14} />
-                )}
-                <span>{Math.abs(item.change).toFixed(1)}% vs last month</span>
-              </div>
-            )}
-            {item.change === null && (
-              <div className="flex items-center gap-1.5 mt-5 text-[11px] font-bold text-emerald-800/60 italic">
-                <Activity size={14} />
-                <span>Across all transactions</span>
-              </div>
-            )}
-          </div>
-        ))}
+    <article className="panel planning-metric">
+      <div>
+        <span>{label}</span>
+        {createElement(icon, { size: 18 })}
       </div>
+      <strong>{value}</strong>
+      <p>{caption}</p>
+    </article>
+  );
+}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 p-6 rounded-xl bg-white backdrop-blur-xl border border-stone-200 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-            <div>
-              <h3 className="text-xl font-bold text-stone-800 tracking-tight">
-                Cash Flow Analysis
-              </h3>
-              <p className="text-sm text-stone-600 mt-1">
-                Income and expenses over time
-              </p>
-            </div>
-            <div className="flex gap-2 p-1.5 bg-white rounded-lg border border-stone-200">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-wide text-emerald-800 bg-emerald-50">
-                <div
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: "#39795a" }}
-                />{" "}
-                Income
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-wide text-emerald-800 bg-emerald-50">
-                <div
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: "#bbcb97" }}
-                />{" "}
-                Expense
-              </div>
-            </div>
-          </div>
-
-          <div className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={barData}
-                margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="10 10"
-                  stroke="#e6e9e0"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="month"
-                  stroke="#68756d"
-                  fontSize={10}
-                  fontWeight="bold"
-                  tickLine={false}
-                  axisLine={false}
-                  dy={15}
-                />
-                <YAxis
-                  stroke="#68756d"
-                  fontSize={10}
-                  fontWeight="bold"
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(val) =>
-                    `₹${val >= 1000 ? `${val / 1000}k` : val}`
-                  }
-                />
-                <Tooltip
-                  content={<CustomTooltip />}
-                  cursor={{ fill: "#f5f7ef" }}
-                />
-                <Bar
-                  isAnimationActive={!reducedMotion}
-                  animationDuration={650}
-                  dataKey="income"
-                  fill="#39795a"
-                  radius={[8, 8, 0, 0]}
-                  barSize={28}
-                />
-                <Bar
-                  isAnimationActive={!reducedMotion}
-                  animationDuration={650}
-                  dataKey="expense"
-                  fill="#bbcb97"
-                  radius={[8, 8, 0, 0]}
-                  barSize={28}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+function SavingsScenario({ data, token }) {
+  const [category, setCategory] = useState(data.categories[0]?.name || "");
+  const [percent, setPercent] = useState(10);
+  const [goalId, setGoalId] = useState("");
+  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const pending = useRef(null);
+  useEffect(() => () => pending.current?.abort(), []);
+  async function calculate(event) {
+    event.preventDefault();
+    if (busy) return;
+    const controller = new AbortController();
+    pending.current = controller;
+    setBusy(true);
+    setError("");
+    setResult(null);
+    try {
+      setResult(
+        await planningRequest("/scenarios", {
+          token,
+          method: "POST",
+          body: {
+            month: data.month,
+            category,
+            reductionPercent: Number(percent),
+            goalId: goalId || null,
+          },
+          signal: controller.signal,
+        }),
+      );
+    } catch (err) {
+      if (err.name !== "AbortError") setError(err.message);
+    } finally {
+      if (!controller.signal.aborted) setBusy(false);
+    }
+  }
+  return (
+    <section className="panel planning-section">
+      <div className="planning-section-title">
+        <Target size={20} />
+        <div>
+          <h2>Make room for your priorities</h2>
+          <p>Explore a change you choose. Your transactions stay the same.</p>
         </div>
-
-        <div className="p-6 rounded-xl bg-white backdrop-blur-xl border border-stone-200 shadow-sm flex flex-col">
-          <div className="flex items-center gap-2 mb-8">
-            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-800">
-              <PieIcon size={18} />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-stone-800 tracking-tight">
-                Top Spending
-              </h3>
-              <p className="text-xs text-stone-500">All recorded expenses</p>
-            </div>
-          </div>
-
-          <div className="h-[240px] mb-10 relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  isAnimationActive={!reducedMotion}
-                  animationDuration={650}
-                  data={pieData}
-                  dataKey="value"
-                  innerRadius={75}
-                  outerRadius={100}
-                  paddingAngle={10}
-                  stroke="none"
+      </div>
+      {!data.categories.length ? (
+        <p className="planning-muted">
+          Add an expense to explore a category scenario.
+        </p>
+      ) : (
+        <form onSubmit={calculate} aria-busy={busy}>
+          <fieldset disabled={busy} className="planning-scenario-fields">
+            <label className="form-field">
+              A category you could adjust
+              <select
+                value={category}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  setResult(null);
+                }}
+              >
+                {data.categories.map((c) => (
+                  <option key={c.name}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="form-field" htmlFor="scenario-reduction">
+              Try a {percent}% reduction
+              <input
+                id="scenario-reduction"
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                value={percent}
+                onChange={(e) => {
+                  setPercent(Number(e.target.value));
+                  setResult(null);
+                }}
+              />
+            </label>
+            {data.goals.length > 0 && (
+              <label className="form-field">
+                Explore the impact on a goal
+                <select
+                  value={goalId}
+                  onChange={(e) => {
+                    setGoalId(e.target.value);
+                    setResult(null);
+                  }}
                 >
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  <option value="">No goal selected</option>
+                  {data.goals.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
                   ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <p className="text-[10px] font-semibold text-stone-500 uppercase tracking-wide">
-                Spent
-              </p>
-              <p className="text-xl font-semibold text-stone-800 tracking-tight">
-                ₹{data.totalExpense.toLocaleString()}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4 mt-auto">
-            {topCategories.map((cat, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between p-3 rounded-lg bg-white border border-stone-200 hover:bg-white transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-1.5 h-6 rounded-full"
-                    style={{ backgroundColor: COLORS[idx % COLORS.length] }}
-                  />
-                  <span className="text-xs text-stone-600 font-bold uppercase tracking-wider">
-                    {cat.name}
-                  </span>
-                </div>
-                <span className="text-sm font-semibold text-stone-800">
-                  ₹{cat.value.toLocaleString()}
-                </span>
-              </div>
-            ))}
-          </div>
+                </select>
+              </label>
+            )}
+            <button className="btn btn-primary" type="submit">
+              {busy ? (
+                <LoadingIndicator>Calculating…</LoadingIndicator>
+              ) : (
+                "Explore this scenario"
+              )}
+            </button>
+          </fieldset>
+        </form>
+      )}
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+      {result && (
+        <div className="planning-scenario-result" role="status">
+          <span className="planning-badge">Scenario · {data.month}</span>
+          <strong>
+            {formatCurrency(result.potentialReduction)} less over this recorded
+            period
+          </strong>
+          <p>
+            {formatCurrency(result.recordedSpending)} →{" "}
+            {formatCurrency(result.adjustedSpending)} in {result.category}.
+          </p>
+          <p>{result.explanation}</p>
+          {result.goalImpact && (
+            <p>
+              If you actually save and set aside{" "}
+              {formatCurrency(result.goalImpact.possibleContribution)} for{" "}
+              {result.goalImpact.name}, the remaining goal amount would change
+              from {formatCurrency(result.goalImpact.remainingBefore)} to{" "}
+              {formatCurrency(result.goalImpact.remainingAfter)}. No
+              contribution has been recorded.
+            </p>
+          )}
+          <Link to="/dashboard/goals">
+            Choose a goal for your plan <ChevronRight size={14} />
+          </Link>
         </div>
-      </div>
+      )}
+    </section>
+  );
+}
 
-      <div className="p-6 rounded-xl bg-stone-100   backdrop-blur-xl border border-stone-200 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-800">
-              <Activity size={24} />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-stone-800 tracking-tight">
-                Daily spending
-              </h3>
-              <p className="text-sm text-stone-600 mt-1">
-                All recorded expenses, grouped by weekday
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={areaData}
-              margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
+function Coverage({ data, mutate, busy }) {
+  const [from, setFrom] = useState(
+    data.coverage.from || data.coverage.firstRecord || data.asOf,
+  );
+  const [through, setThrough] = useState(data.coverage.through || data.asOf);
+  const [confirmed, setConfirmed] = useState(false);
+  return (
+    <details className="panel planning-section planning-coverage">
+      <summary>
+        <CalendarDays size={18} /> Your tracking coverage{" "}
+        <span>
+          {data.coverage.from
+            ? `${dateLabel(data.coverage.from)} – ${dateLabel(data.coverage.through)}`
+            : "Not confirmed"}
+        </span>
+      </summary>
+      <p>
+        Only confirm dates where you have recorded all expenses and reviewed
+        duplicates, refunds, shared reimbursements and transfers. A day with no
+        entry may be missing, rather than a zero-spend day.
+      </p>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          mutate("/coverage", "PUT", { from, through });
+        }}
+      >
+        <fieldset disabled={busy} className="planning-coverage-fields">
+          <label className="form-field">
+            Tracked from
+            <input
+              type="date"
+              required
+              min="2000-01-01"
+              max={through}
+              value={from}
+              onChange={(e) => {
+                setFrom(e.target.value);
+                setConfirmed(false);
+              }}
+            />
+          </label>
+          <label className="form-field">
+            Tracked through
+            <input
+              type="date"
+              required
+              min={from}
+              max={data.asOf}
+              value={through}
+              onChange={(e) => {
+                setThrough(e.target.value);
+                setConfirmed(false);
+              }}
+            />
+          </label>
+          <label className="planning-checkbox">
+            <input
+              type="checkbox"
+              required
+              checked={confirmed}
+              onChange={(e) => setConfirmed(e.target.checked)}
+            />{" "}
+            I have fully tracked and reviewed this range.
+          </label>
+          <button className="btn" disabled={!confirmed} type="submit">
+            Confirm tracked dates
+          </button>
+          {data.coverage.from && (
+            <button
+              className="text-link"
+              type="button"
+              onClick={() => mutate("/coverage", "DELETE")}
             >
+              Clear confirmation
+            </button>
+          )}
+        </fieldset>
+      </form>
+    </details>
+  );
+}
+
+export default function Analytics() {
+  const { token } = useAuth();
+  const reducedMotion = useReducedMotion();
+  const [month, setMonth] = useState(localMonth);
+  const [tab, setTab] = useState("overview");
+  const [state, setState] = useState({ data: null, loading: true, error: "" });
+  const [revision, setRevision] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [notice, setNotice] = useState("");
+  const action = useRef(null);
+  useEffect(() => () => action.current?.abort(), []);
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    const timer = setTimeout(() => controller.abort(), 20000);
+    async function load() {
+      setState((previous) => ({ ...previous, loading: true, error: "" }));
+      try {
+        const data = await planningRequest(
+          `?month=${encodeURIComponent(month)}`,
+          { token, signal: controller.signal },
+        );
+        if (active) setState({ data, loading: false, error: "" });
+      } catch (err) {
+        if (active)
+          setState((previous) => ({
+            ...previous,
+            loading: false,
+            error:
+              err.name === "AbortError"
+                ? "Analytics took too long to load. Please try again."
+                : err.message,
+          }));
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    load();
+    const refresh = () => setRevision((value) => value + 1);
+    window.addEventListener("transactions-updated", refresh);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      controller.abort();
+      window.removeEventListener("transactions-updated", refresh);
+    };
+  }, [month, revision, token]);
+  async function mutate(path, method, body) {
+    if (busy || state.loading) return;
+    const controller = new AbortController();
+    action.current = controller;
+    setBusy(true);
+    setActionError("");
+    setNotice("");
+    try {
+      await planningRequest(path, {
+        token,
+        method,
+        body,
+        signal: controller.signal,
+      });
+      setNotice(
+        path.includes("confirm")
+          ? "Recurring schedule confirmed. No expense has been created."
+          : path.includes("feedback")
+            ? "Your feedback was saved."
+            : "Tracking coverage updated.",
+      );
+      setRevision((value) => value + 1);
+    } catch (err) {
+      if (err.name !== "AbortError") setActionError(err.message);
+    } finally {
+      if (!controller.signal.aborted) setBusy(false);
+    }
+  }
+  const data = state.data?.month === month ? state.data : null;
+  return (
+    <div className="planning-page">
+      <div className="planning-toolbar">
+        <div className="planning-tabs" role="group" aria-label="Analytics view">
+          {[
+            ["overview", "Overview"],
+            ["ahead", "Plan ahead"],
+            ["patterns", "Your patterns"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              className={tab === value ? "active" : ""}
+              aria-pressed={tab === value}
+              onClick={() => setTab(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <label className="planning-month">
+          Recorded period
+          <input
+            aria-label="Analytics month"
+            type="month"
+            min="2000-01"
+            max={localMonth()}
+            value={month}
+            disabled={busy}
+            onChange={(e) => {
+              if (e.target.value) {
+                setMonth(e.target.value);
+                setActionError("");
+                setNotice("");
+              }
+            }}
+          />
+        </label>
+      </div>
+      {state.error && (
+        <div className="panel planning-section" role="alert">
+          <p>{state.error}</p>
+          <button
+            className="btn"
+            onClick={() => setRevision((value) => value + 1)}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+      {!data && state.loading && (
+        <LoadingState variant="chart" label="Preparing your spending review…" />
+      )}
+      {data && (
+        <>
+          <div className="planning-context">
+            <span>
+              <span className="planning-badge">Recorded INR activity</span>{" "}
+              Through {dateLabel(data.periodEnd)} · {data.timezone}
+            </span>
+            <span role="status">
+              {state.loading || busy ? (
+                <LoadingIndicator>Updating your review…</LoadingIndicator>
+              ) : state.error ? (
+                "Previous review · refresh failed"
+              ) : (
+                "Based on your entries"
+              )}
+            </span>
+          </div>
+          <p className="planning-notice" role="status">
+            {notice}
+          </p>
+          {actionError && (
+            <p className="form-error" role="alert">
+              {actionError}
+            </p>
+          )}
+          <div className="planning-metrics">
+            <Metric
+              label="Recorded spending"
+              value={formatCurrency(data.summary.spending)}
+              caption={
+                data.summary.changePercent === null
+                  ? "No complete, nonzero comparison baseline"
+                  : `${data.summary.changePercent > 0 ? "+" : ""}${data.summary.changePercent}% versus the comparable previous period`
+              }
+            />
+            <Metric
+              label="Recorded net cash flow"
+              value={formatCurrency(data.summary.netCashFlow)}
+              caption="Recorded income minus expenses · not a bank balance"
+            />
+            <Metric
+              label="Remaining chosen budget"
+              value={
+                data.summary.remainingBudget === null
+                  ? "Not set"
+                  : formatCurrency(data.summary.remainingBudget)
+              }
+              caption="Before any unrecorded or upcoming spending"
+              icon={Target}
+            />
+            <Metric
+              label="Recorded savings rate"
+              value={
+                data.summary.savingsRate === null
+                  ? "Unavailable"
+                  : `${data.summary.savingsRate}%`
+              }
+              caption={
+                data.summary.savingsRate === null
+                  ? "Record income to calculate this measure"
+                  : "From recorded income and expenses in this period"
+              }
+              icon={ArrowDownRight}
+            />
+          </div>
+          {tab === "overview" && (
+            <>
+              <section className="planning-review">
+                <div className="planning-section-title">
+                  <Sparkles size={20} />
+                  <div>
+                    <h2>What’s worth knowing</h2>
+                    <p>A short review, with room for your own priorities.</p>
+                  </div>
+                </div>
+                <div className="planning-insight-grid">
+                  {data.insights.slice(0, 3).map((insight) => (
+                    <article
+                      className={`panel planning-insight tone-${insight.tone}`}
+                      key={insight.id}
+                    >
+                      <span className="planning-badge">
+                        Observed ·{" "}
+                        {insight.tone === "review"
+                          ? "Worth a look"
+                          : insight.tone === "progress"
+                            ? "Progress"
+                            : "Getting started"}
+                      </span>
+                      <h3>{insight.title}</h3>
+                      <p>{insight.message}</p>
+                      <Evidence rows={insight.evidence} />
+                      <div
+                        className="planning-feedback"
+                        role="group"
+                        aria-label={`Feedback on ${insight.title}`}
+                      >
+                        <button
+                          disabled={busy || state.loading}
+                          onClick={() =>
+                            mutate(`/insights/${insight.id}/feedback`, "POST", {
+                              month,
+                              response: "helpful",
+                            })
+                          }
+                        >
+                          <Check size={13} /> Helpful
+                        </button>
+                        <button
+                          disabled={busy || state.loading}
+                          onClick={() =>
+                            mutate(`/insights/${insight.id}/feedback`, "POST", {
+                              month,
+                              response:
+                                insight.tone === "review"
+                                  ? "expected"
+                                  : "dismissed",
+                            })
+                          }
+                        >
+                          {insight.tone === "review"
+                            ? "This was expected"
+                            : "Dismiss"}
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                  {!data.insights.length && (
+                    <div className="panel planning-section">
+                      <h3>You’re up to date</h3>
+                      <p>
+                        Your feedback has cleared this review. Explore your
+                        plans or recorded patterns below.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </section>
+              <div className="planning-two-columns">
+                <SpendingChart data={data} reducedMotion={reducedMotion} />
+                <CategoryBreakdown data={data} />
+              </div>
+              <SavingsScenario
+                key={`${month}:${data.categories.map((c) => `${c.name}:${c.amount}`).join("|")}:${data.goals.map((g) => `${g.id}:${g.current}:${g.target}`).join("|")}`}
+                data={data}
+                token={token}
+              />
+            </>
+          )}
+          {tab === "ahead" && (
+            <>
+              <section className="panel planning-section">
+                <div className="planning-section-title">
+                  <ChartNoAxesCombined size={20} />
+                  <div>
+                    <h2>Your spending outlook</h2>
+                    <p>
+                      Confirmed scheduled bills plus a weekday spending
+                      baseline.
+                    </p>
+                  </div>
+                </div>
+                {data.outlook.status === "ready" ? (
+                  <div className="planning-outlook">
+                    <span className="planning-badge">
+                      Estimate · {data.outlook.historyDays} confirmed history
+                      days
+                    </span>
+                    <strong>
+                      {formatCurrency(data.outlook.projectedSpending)} recorded
+                      + projected spending by month-end
+                    </strong>
+                    <p>
+                      {formatCurrency(data.summary.spending)} recorded +{" "}
+                      {formatCurrency(data.outlook.remainingVariable)} variable
+                      spending from tomorrow +{" "}
+                      {formatCurrency(data.outlook.upcomingBills)} scheduled
+                      bills.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="planning-empty">
+                    <h3>
+                      {data.outlook.status === "historical"
+                        ? "Recorded facts for a completed month"
+                        : data.outlook.status === "review_due_bills"
+                          ? "Review bills due today or overdue first"
+                          : "Build a reliable starting point"}
+                    </h3>
+                    <p>
+                      {data.outlook.status === "historical"
+                        ? "Choose the current month to see an outlook when your data is ready."
+                        : data.outlook.status === "review_due_bills"
+                          ? "An active schedule has an unresolved due date. Review recurring payments before using an outlook."
+                          : "An outlook needs at least 28 fully tracked days through yesterday and 12 recorded expenses. Confirm only dates you have fully reviewed."}
+                    </p>
+                    <Link to="/dashboard/recurring">
+                      Review recurring payments <ChevronRight size={14} />
+                    </Link>
+                  </div>
+                )}
+                <details className="planning-assumptions">
+                  <summary>How this estimate works</summary>
+                  <ul>
+                    {data.outlook.assumptions.map((text) => (
+                      <li key={text}>{text}</li>
+                    ))}
+                  </ul>
+                </details>
+                <h3 className="planning-subheading">
+                  Upcoming scheduled payments
+                </h3>
+                {data.outlook.bills.length ? (
+                  <ul className="planning-bills">
+                    {data.outlook.bills.map((b) => (
+                      <li key={`${b.id}-${b.date}`}>
+                        <CalendarDays size={17} />
+                        <span>
+                          {b.title}
+                          <small>{dateLabel(b.date)}</small>
+                        </span>
+                        <strong>{formatCurrency(b.amount)}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="planning-muted">
+                    No future scheduled expense in the remaining month. This
+                    does not prove that no bills are due.
+                  </p>
+                )}
+              </section>
+              <SavingsScenario
+                key={`${month}:${data.categories.map((c) => `${c.name}:${c.amount}`).join("|")}:${data.goals.map((g) => `${g.id}:${g.current}:${g.target}`).join("|")}`}
+                data={data}
+                token={token}
+              />
+            </>
+          )}
+          {tab === "patterns" && (
+            <>
+              <div className="planning-two-columns">
+                <CategoryBreakdown data={data} />
+                <SpendingChart data={data} reducedMotion={reducedMotion} />
+              </div>
+              <section className="planning-review">
+                <div className="planning-section-title">
+                  <CalendarDays size={20} />
+                  <div>
+                    <h2>Possible repeating expenses</h2>
+                    <p>
+                      Similar descriptions, timing and amounts. Confirm what
+                      belongs in your plan.
+                    </p>
+                  </div>
+                </div>
+                <div className="planning-candidate-grid">
+                  {data.recurringCandidates.map((candidate) => (
+                    <article
+                      className="panel planning-section"
+                      key={candidate.id}
+                    >
+                      <span className="planning-badge">
+                        Suggestion · {candidate.frequency}
+                      </span>
+                      <h3>{candidate.title}</h3>
+                      <p>
+                        {formatCurrency(candidate.amount)} · next suggested date{" "}
+                        {dateLabel(candidate.nextDate)}
+                      </p>
+                      <p>
+                        Three or more similar payments. Billing history cannot
+                        establish whether a subscription is used.
+                      </p>
+                      <Evidence rows={candidate.evidence} />
+                      <button
+                        className="btn"
+                        disabled={
+                          busy ||
+                          state.loading ||
+                          month !== data.asOf.slice(0, 7)
+                        }
+                        onClick={() =>
+                          mutate(
+                            `/recurring-candidates/${candidate.id}/confirm`,
+                            "POST",
+                            { month },
+                          )
+                        }
+                      >
+                        Confirm recurring schedule
+                      </button>
+                    </article>
+                  ))}
+                  {!data.recurringCandidates.length && (
+                    <div className="panel planning-empty">
+                      <h3>No unconfirmed repeating pattern yet</h3>
+                      <p>
+                        Patterns need at least three distinct payment dates. You
+                        can also add a known bill yourself.
+                      </p>
+                      <Link to="/dashboard/recurring">
+                        Manage recurring payments <ChevronRight size={14} />
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </section>
+              <section className="panel planning-section">
+                <div className="planning-section-title">
+                  <Target size={20} />
+                  <div>
+                    <h2>Your goal progress</h2>
+                    <p>
+                      Current recorded contributions, without assumptions about
+                      this week.
+                    </p>
+                  </div>
+                </div>
+                {data.goals.length ? (
+                  data.goals.map((goal) => (
+                    <div className="planning-goal" key={goal.id}>
+                      <span>{goal.name}</span>
+                      <strong>
+                        {formatCurrency(goal.current)} /{" "}
+                        {formatCurrency(goal.target)}
+                      </strong>
+                      <progress
+                        max="100"
+                        value={Math.min(100, goal.percent)}
+                        aria-label={`${goal.name} progress`}
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <p className="planning-muted">
+                    Choose a savings goal to make future reviews more personal.
+                  </p>
+                )}
+                <Link to="/dashboard/goals">
+                  Manage savings goals <ChevronRight size={14} />
+                </Link>
+              </section>
+            </>
+          )}
+          <Coverage
+            key={`${month}:${data.coverage.from}:${data.coverage.through}`}
+            data={data}
+            mutate={mutate}
+            busy={busy || state.loading}
+          />
+          <details className="planning-limitations">
+            <summary>
+              <Info size={15} /> About your recorded data
+            </summary>
+            <ul>
+              {data.limitations.map((text) => (
+                <li key={text}>{text}</li>
+              ))}
+            </ul>
+          </details>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SpendingChart({ data, reducedMotion }) {
+  return (
+    <section className="panel planning-section">
+      <h2>Spending, day by day</h2>
+      <p>
+        Recorded expenses for the selected period. Gaps may be untracked days.
+      </p>
+      <div className="planning-chart">
+        {data.categories.length ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data.days}>
               <defs>
-                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#49765a" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#49765a" stopOpacity={0} />
+                <linearGradient id="planning-spend" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#70956c" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#70956c" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <CartesianGrid
-                strokeDasharray="10 10"
-                stroke="#e6e9e0"
+                strokeDasharray="3 5"
                 vertical={false}
+                stroke="#e8eee3"
               />
               <XAxis
-                dataKey="day"
-                stroke="#68756d"
-                fontSize={10}
-                fontWeight="bold"
+                dataKey="date"
+                tickFormatter={dateLabel}
+                minTickGap={38}
                 tickLine={false}
                 axisLine={false}
+                fontSize={11}
               />
               <YAxis
-                stroke="#68756d"
-                fontSize={10}
-                fontWeight="bold"
+                width={65}
+                tickFormatter={(value) => formatCurrency(value)}
                 tickLine={false}
                 axisLine={false}
+                fontSize={11}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip
+                labelFormatter={dateLabel}
+                formatter={(value) => [
+                  formatCurrency(value),
+                  "Recorded spending",
+                ]}
+              />
               <Area
-                isAnimationActive={!reducedMotion}
-                animationDuration={650}
-                type="monotone"
-                dataKey="value"
+                type="linear"
+                dataKey="spending"
+                connectNulls={false}
                 stroke="#49765a"
-                strokeWidth={4}
-                fillOpacity={1}
-                fill="url(#colorValue)"
+                fill="url(#planning-spend)"
+                strokeWidth={2}
+                isAnimationActive={!reducedMotion}
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
+        ) : (
+          <div className="planning-empty">
+            Your spending chart starts with your first recorded expense.
+          </div>
+        )}
       </div>
-    </div>
-  )
+    </section>
+  );
 }
 
-export default Analytics
+function CategoryBreakdown({ data }) {
+  const total = Number(data.summary.spending);
+  return (
+    <section className="panel planning-section">
+      <h2>Where your recorded spending went</h2>
+      <p>Categories for this selected period.</p>
+      <div className="planning-category-list">
+        {data.categories.map((category) => (
+          <div key={category.name}>
+            <div>
+              <span>{category.name}</span>
+              <strong>{formatCurrency(category.amount)}</strong>
+            </div>
+            <progress
+              max="100"
+              value={total > 0 ? (Number(category.amount) / total) * 100 : 0}
+              aria-label={`${category.name} share of spending`}
+            />
+            <small>
+              {category.count} recorded{" "}
+              {category.count === 1 ? "expense" : "expenses"}
+            </small>
+          </div>
+        ))}
+        {!data.categories.length && (
+          <p className="planning-muted">No recorded expenses in this period.</p>
+        )}
+      </div>
+    </section>
+  );
+}

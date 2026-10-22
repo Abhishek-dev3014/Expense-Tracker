@@ -29,3 +29,13 @@ jobs:
         run: npm ci
       - working-directory: frontend/expense-tracker
         run: npm test && npm run build
+  forecasting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check chronological baseline evaluation
+        working-directory: ml-service
+        run: python -m unittest forecasting.test_backtest -v

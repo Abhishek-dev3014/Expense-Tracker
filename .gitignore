@@ -35,3 +35,7 @@ frontend/expense-tracker/dist/
 # Generated Catalyst bundles and local deployment secrets
 /deployment/catalyst/
 ml-service/vendor/
+
+# Private forecasting histories and generated evaluation reports
+ml-service/forecasting/private-data/
+ml-service/forecasting/reports/

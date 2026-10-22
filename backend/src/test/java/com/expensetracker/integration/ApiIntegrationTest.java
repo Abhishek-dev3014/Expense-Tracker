@@ -71,6 +71,7 @@ class ApiIntegrationTest {
     @org.springframework.beans.factory.annotation.Value("${local.server.port}")
     int port;
 
+    @Autowired com.expensetracker.features.analytics.application.AnalyticsPlanningService planning;
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
     @Autowired MongoTemplate mongo;
@@ -84,6 +85,8 @@ class ApiIntegrationTest {
                         "transactions",
                         "categories",
                         "categoryrules",
+                        "analyticscoverage",
+                        "insightfeedback",
                         "budgets",
                         "goals",
                         "recurringtransactions",
@@ -1126,5 +1129,198 @@ class ApiIntegrationTest {
                                 .header("Origin", "http://localhost:5173.evil.example")
                                 .header("Access-Control-Request-Method", "GET"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void planningIsAuthenticatedPeriodAwareAndHonestAboutMissingIncome() throws Exception {
+        call(get("/api/analytics"), null, null, 401);
+        String owner = signup("planning-owner@example.com");
+        String other = signup("planning-other@example.com");
+        var today = LocalDate.now(ZoneOffset.UTC);
+        var month = YearMonth.from(today);
+        expense(owner, "Lunch", "Food", 100, today.toString());
+        expense(owner, "Prior year", "Food", 900, month.minusYears(1).atDay(1).toString());
+        expense(other, "Private purchase", "Food", 700, today.toString());
+        var response =
+                call(get("/api/analytics").param("month", month.toString()), owner, null, 200);
+        assertThat(response.get("summary").get("spending").asDouble()).isEqualTo(100);
+        assertThat(response.get("summary").get("savingsRate").isNull()).isTrue();
+        assertThat(response.get("summary").get("changePercent").isNull()).isTrue();
+        assertThat(response.get("outlook").get("status").asString()).isEqualTo("needs_history");
+        assertThat(response.get("categories").get(0).get("count").asInt()).isEqualTo(1);
+        assertThat(
+                        call(get("/api/analytics"), other, null, 200)
+                                .get("summary")
+                                .get("spending")
+                                .asDouble())
+                .isEqualTo(700);
+        call(get("/api/analytics").param("month", "2026-99"), owner, null, 400);
+        call(
+                get("/api/analytics").param("month", month.plusMonths(1).toString()),
+                owner,
+                null,
+                400);
+    }
+
+    @Test
+    void scenariosAreExactReadOnlyAndValidatedAgainstTheOwnersPeriod() throws Exception {
+        String token = signup("scenario@example.com");
+        var date = LocalDate.now(ZoneOffset.UTC);
+        expense(token, "Outside food", "Outside food", 2145, date.toString());
+        var body =
+                Map.of(
+                        "month",
+                        YearMonth.from(date).toString(),
+                        "category",
+                        "Outside food",
+                        "reductionPercent",
+                        20);
+        var response = call(post("/api/analytics/scenarios"), token, body, 200);
+        assertThat(response.get("potentialReduction").asDouble()).isEqualTo(429);
+        assertThat(response.get("adjustedSpending").asDouble()).isEqualTo(1716);
+        var goal =
+                call(post("/api/goals"), token, Map.of("name", "Laptop", "targetAmount", 300), 201);
+        var withGoal = new java.util.HashMap<String, Object>(body);
+        withGoal.put("goalId", goal.get("_id").asString());
+        var goalScenario = call(post("/api/analytics/scenarios"), token, withGoal, 200);
+        assertThat(goalScenario.get("goalImpact").get("possibleContribution").asDouble())
+                .isEqualTo(300);
+        assertThat(goalScenario.get("goalImpact").get("remainingAfter").asDouble()).isZero();
+        assertThat(call(get("/api/goals"), token, null, 200).get(0).get("currentAmount").asDouble())
+                .isZero();
+        String other = signup("other-scenario@example.com");
+        var otherGoal =
+                call(
+                        post("/api/goals"),
+                        other,
+                        Map.of("name", "Private", "targetAmount", 1000),
+                        201);
+        withGoal.put("goalId", otherGoal.get("_id").asString());
+        call(post("/api/analytics/scenarios"), token, withGoal, 404);
+
+        assertThat(
+                        call(get("/api/analytics"), token, null, 200)
+                                .get("summary")
+                                .get("spending")
+                                .asDouble())
+                .isEqualTo(2145);
+        call(
+                post("/api/analytics/scenarios"),
+                token,
+                Map.of(
+                        "month",
+                        YearMonth.from(date).toString(),
+                        "category",
+                        "Food",
+                        "reductionPercent",
+                        20),
+                400);
+        call(
+                post("/api/analytics/scenarios"),
+                token,
+                Map.of(
+                        "month",
+                        YearMonth.from(date).toString(),
+                        "category",
+                        "Outside food",
+                        "reductionPercent",
+                        101),
+                400);
+    }
+
+    @Test
+    void coverageConfirmationAndFeedbackStayWithTheirAccount() throws Exception {
+        String owner = signup("coverage@example.com");
+        String other = signup("coverage-other@example.com");
+        var today = LocalDate.now(ZoneOffset.UTC);
+        var month = YearMonth.from(today).toString();
+        call(
+                put("/api/analytics/coverage"),
+                owner,
+                Map.of("from", today.minusDays(60).toString(), "through", today.toString()),
+                204);
+        assertThat(
+                        call(get("/api/analytics"), owner, null, 200)
+                                .get("coverage")
+                                .get("periodComplete")
+                                .asBoolean())
+                .isTrue();
+        assertThat(
+                        call(get("/api/analytics"), other, null, 200)
+                                .get("coverage")
+                                .get("from")
+                                .isNull())
+                .isTrue();
+        call(
+                put("/api/analytics/coverage"),
+                owner,
+                Map.of("from", today.toString(), "through", today.plusDays(1).toString()),
+                400);
+        var id =
+                call(get("/api/analytics"), owner, null, 200)
+                        .get("insights")
+                        .get(0)
+                        .get("id")
+                        .asString();
+        call(
+                post("/api/analytics/insights/" + id + "/feedback"),
+                owner,
+                Map.of("month", month, "response", "dismissed"),
+                204);
+        assertThat(call(get("/api/analytics"), owner, null, 200).get("insights").size()).isZero();
+        assertThat(call(get("/api/analytics"), other, null, 200).get("insights").size())
+                .isPositive();
+        call(
+                post("/api/analytics/insights/not-real/feedback"),
+                other,
+                Map.of("month", month, "response", "dismissed"),
+                404);
+        call(delete("/api/analytics/coverage"), owner, null, 204);
+        assertThat(
+                        call(get("/api/analytics"), owner, null, 200)
+                                .get("coverage")
+                                .get("from")
+                                .isNull())
+                .isTrue();
+    }
+
+    @Test
+    void confirmingARecurringCandidateIsOwnedIdempotentAndDoesNotCreateAnExpense()
+            throws Exception {
+        String owner = signup("pattern@example.com");
+        String other = signup("pattern-other@example.com");
+        var today = LocalDate.now(ZoneOffset.UTC);
+        for (int weeks = 0; weeks < 3; weeks++)
+            expense(owner, "Internet", "Utilities", 799, today.minusDays(1 + weeks * 7).toString());
+        var response = call(get("/api/analytics"), owner, null, 200);
+        String id = response.get("recurringCandidates").get(0).get("id").asString();
+        var body = Map.of("month", YearMonth.from(today).toString());
+        call(post("/api/analytics/recurring-candidates/" + id + "/confirm"), other, body, 404);
+        var first =
+                call(
+                        post("/api/analytics/recurring-candidates/" + id + "/confirm"),
+                        owner,
+                        body,
+                        200);
+        var second =
+                call(
+                        post("/api/analytics/recurring-candidates/" + id + "/confirm"),
+                        owner,
+                        body,
+                        200);
+        assertThat(first.get("_id").asString()).isEqualTo(second.get("_id").asString());
+        assertThat(call(get("/api/recurring"), owner, null, 200).size()).isEqualTo(1);
+        assertThat(
+                        call(get("/api/analytics"), owner, null, 200)
+                                .get("categories")
+                                .get(0)
+                                .get("count")
+                                .asInt())
+                .isLessThanOrEqualTo(3);
+        assertThat(
+                        mongo.count(
+                                new Query(Criteria.where("user").is(new ObjectId(userId(owner)))),
+                                "transactions"))
+                .isEqualTo(3);
     }
 }

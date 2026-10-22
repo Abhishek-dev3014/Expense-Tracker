@@ -28,6 +28,7 @@ public class Transaction extends BaseDocument {
 
     private String type;
     private String category = "General";
+    private String recurringScheduleId;
     private double aiConfidence;
     private String categoryStatus = "manual";
     private List<CategoryCorrection> categoryHistory = new ArrayList<>();

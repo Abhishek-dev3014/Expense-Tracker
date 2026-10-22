@@ -33,4 +33,7 @@ public class RecurringTransaction extends BaseDocument {
     private Instant nextOccurrence;
     private Instant lastProcessed;
     private String status = "active";
+
+    // Explicitly confirmed source payments; no merchant-wide exclusion or ledger rewrite.
+    @JsonIgnore private List<String> baselineTransactionIds = List.of();
 }
