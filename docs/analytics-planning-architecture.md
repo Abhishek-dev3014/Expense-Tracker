@@ -87,3 +87,12 @@ A browser acceptance check used the actual built frontend and backend against an
 - Desktop and narrow-layout views retain readable controls, evidence and distinct observed/scenario/estimate labels.
 
 These results describe local acceptance, not proof of a successful production deployment. After publishing the commit, verify GitHub workflow results and deployed endpoints. Release the verified backend before the frontend as described above.
+
+
+### Deployment mismatch recovery — 22 October 2026
+
+The first GitHub release passed tests and published images, but its Catalyst deployment step was skipped. Vercel therefore served the new Analytics view while the managed Java backend still lacked `/api/analytics`. Health checks remained green because `/api/health` existed on the old backend; they were not evidence that the new feature was deployed.
+
+Recovery deployed the verified analytics JAR to the existing `fintrack-api` managed Java 21 Development app, preserving its existing secrets and configuration. Catalyst confirmed deployment, readiness returned HTTP 200 through the Vercel proxy, and the owner confirmed that Analytics now loads. Future releases must also confirm the authenticated Analytics view through that proxy. Do not switch to a Docker runtime to repair a missing managed-backend route. The workflow now reports publication and actual deployment separately, including a notice when deployment was skipped. This does not enable automatic deployment or alter service memory settings.
+
+The frontend regression test now covers the old backend's JSON 404 (`Endpoint not found.`), which previously overwrote the useful deployment-specific error. Missing Analytics routes retain a friendly service explanation and a route to Transactions. A missing goal or other action resource retains its own error rather than being mislabeled as a missing service.

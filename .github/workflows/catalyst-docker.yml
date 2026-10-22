@@ -79,6 +79,7 @@ jobs:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Publish tested images
+        id: publish_images
         if: env.PUBLISH_IMAGES == 'true'
         shell: bash
         run: |
@@ -99,6 +100,7 @@ jobs:
         if: env.PUBLISH_IMAGES == 'true' && vars.CATALYST_AUTO_DEPLOY == 'true'
         run: npm install --global zcatalyst-cli@1.28.0
       - name: Deploy AI image and API Java 21 JAR to Catalyst Development and check health
+        id: deploy_apps
         if: env.PUBLISH_IMAGES == 'true' && vars.CATALYST_AUTO_DEPLOY == 'true'
         env:
           CATALYST_TOKEN: ${{ secrets.CATALYST_TOKEN }}
@@ -108,3 +110,24 @@ jobs:
           AI_URL: ${{ vars.CATALYST_AI_URL }}
           API_URL: ${{ vars.CATALYST_API_URL }}
         run: bash ops/catalyst/deploy.sh
+      - name: Report actual deployment status
+        if: always() && github.event_name != 'pull_request'
+        env:
+          PUBLISH_OUTCOME: ${{ steps.publish_images.outcome }}
+          DEPLOY_OUTCOME: ${{ steps.deploy_apps.outcome }}
+        shell: bash
+        run: |
+          {
+            echo '## Catalyst release status'
+            echo "Image publication: **$PUBLISH_OUTCOME**"
+            echo "Development deployment: **$DEPLOY_OUTCOME**"
+            if [[ "$DEPLOY_OUTCOME" == 'skipped' ]]; then
+              echo 'The running Catalyst backend was not updated by this workflow. Publishing an image or deploying the frontend does not deploy the managed Java backend.'
+              echo 'Deploy the verified Java JAR before releasing a frontend that depends on new API routes. See ops/catalyst/README.md for the existing deployment options.'
+              echo '::notice title=Catalyst deployment skipped::The running backend was not updated. New frontend features may require a separate backend deployment.' >&2
+            elif [[ "$DEPLOY_OUTCOME" == 'success' ]]; then
+              echo 'Development health checks passed. Verify authenticated feature routes and the customer UI before promoting to Production.'
+            else
+              echo 'Deployment was not confirmed. Review the deployment step before treating this commit as live.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

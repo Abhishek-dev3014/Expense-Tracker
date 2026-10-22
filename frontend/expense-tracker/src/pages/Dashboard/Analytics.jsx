@@ -7,6 +7,7 @@ import {
   Check,
   ChevronRight,
   Info,
+  CloudOff,
   Sparkles,
   Target,
 } from "lucide-react";
@@ -308,7 +309,12 @@ export default function Analytics() {
   const reducedMotion = useReducedMotion();
   const [month, setMonth] = useState(localMonth);
   const [tab, setTab] = useState("overview");
-  const [state, setState] = useState({ data: null, loading: true, error: "" });
+  const [state, setState] = useState({
+    data: null,
+    loading: true,
+    error: "",
+    errorCode: "",
+  });
   const [revision, setRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -320,18 +326,25 @@ export default function Analytics() {
     let active = true;
     const timer = setTimeout(() => controller.abort(), 20000);
     async function load() {
-      setState((previous) => ({ ...previous, loading: true, error: "" }));
+      setState((previous) => ({
+        ...previous,
+        loading: true,
+        error: "",
+        errorCode: "",
+      }));
       try {
         const data = await planningRequest(
           `?month=${encodeURIComponent(month)}`,
           { token, signal: controller.signal },
         );
-        if (active) setState({ data, loading: false, error: "" });
+        if (active)
+          setState({ data, loading: false, error: "", errorCode: "" });
       } catch (err) {
         if (active)
           setState((previous) => ({
             ...previous,
             loading: false,
+            errorCode: err.code || "",
             error:
               err.name === "AbortError"
                 ? "Analytics took too long to load. Please try again."
@@ -419,15 +432,30 @@ export default function Analytics() {
         </label>
       </div>
       {state.error && (
-        <div className="panel planning-section" role="alert">
-          <p>{state.error}</p>
-          <button
-            className="btn"
-            onClick={() => setRevision((value) => value + 1)}
-          >
-            Try again
-          </button>
-        </div>
+        <section className="panel planning-section planning-error" role="alert">
+          <span className="planning-error-icon" aria-hidden="true">
+            <CloudOff size={25} />
+          </span>
+          <div>
+            <h2>
+              {state.errorCode === "ANALYTICS_UNAVAILABLE"
+                ? "Your spending review is unavailable"
+                : "We couldn’t load your spending review"}
+            </h2>
+            <p>{state.error}</p>
+            <div className="planning-error-actions">
+              <button
+                className="btn btn-primary"
+                onClick={() => setRevision((value) => value + 1)}
+              >
+                Check again
+              </button>
+              <Link className="btn" to="/dashboard/transactions">
+                View transactions <ChevronRight size={14} />
+              </Link>
+            </div>
+          </div>
+        </section>
       )}
       {!data && state.loading && (
         <LoadingState variant="chart" label="Preparing your spending review…" />

@@ -21,16 +21,30 @@ export async function planningRequest(
     });
     if (!response.ok) {
       let message = "Analytics could not load. Please try again.";
-      if (response.status === 404)
+      const planningUnavailable =
+        response.status === 404 &&
+        method === "GET" &&
+        (path === "" || path.startsWith("?"));
+      if (planningUnavailable)
         message =
-          "The analytics planning API is not available on this backend yet. Deploy the updated backend before the frontend.";
+          "We couldn’t reach the latest analytics service. You can still view and manage your transactions.";
       try {
         const error = await response.json();
-        message = error.message || message;
+        // The old backend returns a generic JSON 404. Keep the route-specific
+        // explanation rather than replacing it with “Endpoint not found”.
+        if (
+          !planningUnavailable &&
+          typeof error.message === "string" &&
+          error.message
+        )
+          message = error.message;
       } catch {
         /* A gateway may return HTML. */
       }
-      throw new Error(message);
+      throw Object.assign(new Error(message), {
+        status: response.status,
+        code: planningUnavailable ? "ANALYTICS_UNAVAILABLE" : "REQUEST_FAILED",
+      });
     }
     if (response.status === 204) return null;
     return await response.json();
