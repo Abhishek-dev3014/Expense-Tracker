@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from "react"
 import axios from "axios"
 import { BASE_URL } from "../../utils/apiPaths"
 import LoadingState from "../../components/ui/LoadingState"
+import GoalDialog from "../../components/dashboard/GoalDialog"
+import toast from "react-hot-toast"
 import {
   Flag,
   Plus,
@@ -18,12 +20,7 @@ const Goals = () => {
   const [goals, setGoals] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [formData, setFormData] = useState({
-    name: "",
-    targetAmount: "",
-    category: "Savings",
-    deadline: ""
-  })
+
 
   const fetchGoals = useCallback(async () => {
     try {
@@ -44,19 +41,14 @@ const Goals = () => {
     fetchGoals()
   }, [fetchGoals])
 
-  const handleAdd = async (e) => {
-    e.preventDefault()
-    try {
-      const token = localStorage.getItem("token")
-      await axios.post(`${BASE_URL}/api/goals`, formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      setShowAddForm(false)
-      fetchGoals()
-      setFormData({ name: "", targetAmount: "", category: "Savings", deadline: "" })
-    } catch (err) {
-      console.error(err)
-    }
+  const handleAdd = async (values) => {
+    const token = localStorage.getItem("token")
+    const response = await axios.post(`${BASE_URL}/api/goals`, values, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 15000,
+    })
+    setGoals((current) => [response.data, ...current])
+    toast.success("Savings goal created")
   }
 
   const handleDelete = async (id) => {
@@ -98,10 +90,10 @@ const Goals = () => {
 
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-6 py-3 rounded-lg bg-emerald-100 hover:bg-emerald-100 text-stone-800 font-semibold transition-all shadow-sm shadow-emerald-500/25 active:scale-95"
+          className="btn btn-primary"
         >
           <Plus size={20} />
-          Create New Goal
+          Create goal
         </button>
       </div>
 
@@ -224,85 +216,7 @@ const Goals = () => {
         )}
       </div>
 
-      {/* Add Form Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-0">
-          <div className="absolute inset-0 bg-white backdrop-blur-xl" onClick={() => setShowAddForm(false)}></div>
-
-          <div className="relative w-full max-w-xl p-6 rounded-xl bg-white border border-stone-200 shadow-sm animate-in zoom-in-95 duration-300">
-            <h2 className="text-3xl font-bold text-stone-800 mb-8">Set New Goal</h2>
-
-            <form onSubmit={handleAdd} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-stone-600 ml-1">Goal Name</label>
-                <input
-                  required
-                  type="text"
-                  placeholder="e.g. Dream Vacation"
-                  className="w-full px-6 py-4 rounded-lg bg-white border border-stone-200 text-stone-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-stone-600 ml-1">Target Amount (₹)</label>
-                  <input
-                    required
-                    type="number"
-                    placeholder="0.00"
-                    className="w-full px-6 py-4 rounded-lg bg-white border border-stone-200 text-stone-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all"
-                    value={formData.targetAmount}
-                    onChange={(e) => setFormData({...formData, targetAmount: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-stone-600 ml-1">Category</label>
-                  <select
-                    className="w-full px-6 py-4 rounded-lg bg-white border border-stone-200 text-stone-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all appearance-none"
-                    value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  >
-                    <option value="Savings">Savings</option>
-                    <option value="Investment">Investment</option>
-                    <option value="Purchase">Purchase</option>
-                    <option value="Travel">Travel</option>
-                    <option value="Education">Education</option>
-                    <option value="Emergency">Emergency</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-stone-600 ml-1">Target Date (Optional)</label>
-                <input
-                  type="date"
-                  className="w-full px-6 py-4 rounded-lg bg-white border border-stone-200 text-stone-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all"
-                  value={formData.deadline}
-                  onChange={(e) => setFormData({...formData, deadline: e.target.value})}
-                />
-              </div>
-
-              <div className="flex gap-4 mt-8">
-                <button
-                  type="button"
-                  onClick={() => setShowAddForm(false)}
-                  className="flex-1 py-4 rounded-lg bg-white text-stone-800 font-semibold hover:bg-white transition-all active:scale-95"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-4 rounded-lg bg-emerald-100 text-stone-800 font-semibold hover:bg-emerald-100 shadow-sm shadow-emerald-500/25 transition-all active:scale-95 btn-primary"
-                >
-                  Save Goal
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {showAddForm && <GoalDialog onClose={() => setShowAddForm(false)} onSubmit={handleAdd} />}
 
     </div>
   )
