@@ -1,97 +1,60 @@
-import { createElement, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react"
+import { Link, useSearchParams } from "react-router-dom"
 import {
-  ArrowDownRight,
   CalendarDays,
-  ChartNoAxesCombined,
-  Check,
   ChevronRight,
   Info,
   CloudOff,
-  Sparkles,
   Target,
-} from "lucide-react";
+} from "lucide-react"
 import {
   ResponsiveContainer,
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
-} from "recharts";
-import { useAuth } from "../../context/AuthContext";
+} from "recharts"
+import { useAuth } from "../../context/AuthContext"
 import LoadingState, {
   LoadingIndicator,
-} from "../../components/ui/LoadingState";
-import useReducedMotion from "../../hooks/useReducedMotion";
-import { planningRequest, localMonth } from "../../utils/planningApi";
-import { formatCurrency } from "../../utils/finance";
-import "../../styles/planning.css";
-import SpendingValues from "../../components/dashboard/SpendingValues";
+} from "../../components/ui/LoadingState"
+import useReducedMotion from "../../hooks/useReducedMotion"
+import { planningRequest, localMonth } from "../../utils/planningApi"
+import { formatCurrency } from "../../utils/finance"
+import "../../styles/planning.css"
+import SpendingValues from "../../components/dashboard/SpendingValues"
+import {
+  MonthlySummary,
+  RecordedInsights,
+  SpendingOutlook,
+  RecurringSuggestions,
+} from "../../components/dashboard/AnalyticsSections"
 
 const dateLabel = (value) =>
   new Date(`${value}T12:00:00`).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
-  });
-
-function Evidence({ rows = [] }) {
-  if (!rows.length) return null;
-  return (
-    <details className="planning-evidence">
-      <summary>View supporting transactions</summary>
-      <p>Most recent supporting entries · up to six shown</p>
-      <ul>
-        {rows.map((row) => (
-          <li key={row.id}>
-            <span>
-              {row.description}
-              <small>
-                {dateLabel(row.date)} · {row.category}
-              </small>
-            </span>
-            <strong>{formatCurrency(Math.abs(row.amount))}</strong>
-          </li>
-        ))}
-      </ul>
-      <Link to="/dashboard/transactions">
-        Review your transactions <ChevronRight size={13} />
-      </Link>
-    </details>
-  );
-}
-
-function Metric({ label, value, caption, icon = ChartNoAxesCombined }) {
-  return (
-    <article className="panel planning-metric">
-      <div>
-        <span>{label}</span>
-        {createElement(icon, { size: 18 })}
-      </div>
-      <strong>{value}</strong>
-      <p>{caption}</p>
-    </article>
-  );
-}
+  })
 
 function SavingsScenario({ data, token }) {
-  const [category, setCategory] = useState(data.categories[0]?.name || "");
-  const [percent, setPercent] = useState(10);
-  const [goalId, setGoalId] = useState("");
-  const [result, setResult] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const pending = useRef(null);
-  useEffect(() => () => pending.current?.abort(), []);
+  const [category, setCategory] = useState(data.categories[0]?.name || "")
+  const [percent, setPercent] = useState(10)
+  const [goalId, setGoalId] = useState("")
+  const [result, setResult] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
+  const pending = useRef(null)
+  useEffect(() => () => pending.current?.abort(), [])
   async function calculate(event) {
-    event.preventDefault();
-    if (busy) return;
-    const controller = new AbortController();
-    pending.current = controller;
-    setBusy(true);
-    setError("");
-    setResult(null);
+    event.preventDefault()
+    if (busy) return
+    const controller = new AbortController()
+    pending.current = controller
+    setBusy(true)
+    setError("")
+    setResult(null)
     try {
       setResult(
         await planningRequest("/scenarios", {
@@ -105,11 +68,11 @@ function SavingsScenario({ data, token }) {
           },
           signal: controller.signal,
         }),
-      );
+      )
     } catch (err) {
-      if (err.name !== "AbortError") setError(err.message);
+      if (err.name !== "AbortError") setError(err.message)
     } finally {
-      if (!controller.signal.aborted) setBusy(false);
+      if (!controller.signal.aborted) setBusy(false)
     }
   }
   return (
@@ -117,8 +80,8 @@ function SavingsScenario({ data, token }) {
       <div className="planning-section-title">
         <Target size={20} />
         <div>
-          <h2>Make room for your priorities</h2>
-          <p>Explore a change you choose. Your transactions stay the same.</p>
+          <h2>Try a savings plan</h2>
+          <p>Preview a smaller category spend before choosing a goal.</p>
         </div>
       </div>
       {!data.categories.length ? (
@@ -129,12 +92,12 @@ function SavingsScenario({ data, token }) {
         <form onSubmit={calculate} aria-busy={busy}>
           <fieldset disabled={busy} className="planning-scenario-fields">
             <label className="form-field">
-              A category you could adjust
+              Category
               <select
                 value={category}
                 onChange={(e) => {
-                  setCategory(e.target.value);
-                  setResult(null);
+                  setCategory(e.target.value)
+                  setResult(null)
                 }}
               >
                 {data.categories.map((c) => (
@@ -143,7 +106,7 @@ function SavingsScenario({ data, token }) {
               </select>
             </label>
             <label className="form-field" htmlFor="scenario-reduction">
-              Try a {percent}% reduction
+              Reduce by {percent}%
               <input
                 id="scenario-reduction"
                 type="range"
@@ -152,19 +115,19 @@ function SavingsScenario({ data, token }) {
                 step="5"
                 value={percent}
                 onChange={(e) => {
-                  setPercent(Number(e.target.value));
-                  setResult(null);
+                  setPercent(Number(e.target.value))
+                  setResult(null)
                 }}
               />
             </label>
             {data.goals.length > 0 && (
               <label className="form-field">
-                Explore the impact on a goal
+                Compare with a goal
                 <select
                   value={goalId}
                   onChange={(e) => {
-                    setGoalId(e.target.value);
-                    setResult(null);
+                    setGoalId(e.target.value)
+                    setResult(null)
                   }}
                 >
                   <option value="">No goal selected</option>
@@ -180,7 +143,7 @@ function SavingsScenario({ data, token }) {
               {busy ? (
                 <LoadingIndicator>Calculating…</LoadingIndicator>
               ) : (
-                "Explore this scenario"
+                "Preview change"
               )}
             </button>
           </fieldset>
@@ -219,34 +182,47 @@ function SavingsScenario({ data, token }) {
         </div>
       )}
     </section>
-  );
+  )
 }
 
-function Coverage({ data, mutate, busy }) {
+function Coverage({ data, mutate, busy, expanded, onExpandedChange }) {
+  const panel = useRef(null)
+  useEffect(() => {
+    if (expanded) {
+      panel.current?.querySelector("summary")?.focus()
+      panel.current?.scrollIntoView({ block: "nearest" })
+    }
+  }, [expanded])
   const [from, setFrom] = useState(
     data.coverage.from || data.coverage.firstRecord || data.asOf,
-  );
-  const [through, setThrough] = useState(data.coverage.through || data.asOf);
-  const [confirmed, setConfirmed] = useState(false);
+  )
+  const [through, setThrough] = useState(data.coverage.through || data.asOf)
+  const [confirmed, setConfirmed] = useState(false)
   return (
-    <details className="panel planning-section planning-coverage">
+    <details
+      ref={panel}
+      id="analytics-tracked-dates"
+      className="panel planning-section planning-coverage"
+      open={expanded}
+      onToggle={(event) => onExpandedChange(event.currentTarget.open)}
+    >
       <summary>
-        <CalendarDays size={18} /> Your tracking coverage{" "}
+        <CalendarDays size={18} /> Tracked dates{" "}
         <span>
           {data.coverage.from
             ? `${dateLabel(data.coverage.from)} – ${dateLabel(data.coverage.through)}`
-            : "Not confirmed"}
+            : "Not set"}
         </span>
       </summary>
       <p>
-        Only confirm dates where you have recorded all expenses and reviewed
-        duplicates, refunds, shared reimbursements and transfers. A day with no
-        entry may be missing, rather than a zero-spend day.
+        Only confirm dates you have fully recorded and checked, including
+        refunds and transfers. This avoids treating missing entries as zero
+        spending.
       </p>
       <form
         onSubmit={(e) => {
-          e.preventDefault();
-          mutate("/coverage", "PUT", { from, through });
+          e.preventDefault()
+          mutate("/coverage", "PUT", { from, through })
         }}
       >
         <fieldset disabled={busy} className="planning-coverage-fields">
@@ -259,8 +235,8 @@ function Coverage({ data, mutate, busy }) {
               max={through}
               value={from}
               onChange={(e) => {
-                setFrom(e.target.value);
-                setConfirmed(false);
+                setFrom(e.target.value)
+                setConfirmed(false)
               }}
             />
           </label>
@@ -273,8 +249,8 @@ function Coverage({ data, mutate, busy }) {
               max={data.asOf}
               value={through}
               onChange={(e) => {
-                setThrough(e.target.value);
-                setConfirmed(false);
+                setThrough(e.target.value)
+                setConfirmed(false)
               }}
             />
           </label>
@@ -302,44 +278,54 @@ function Coverage({ data, mutate, busy }) {
         </fieldset>
       </form>
     </details>
-  );
+  )
 }
 
-export default function Analytics() {
-  const { token } = useAuth();
-  const reducedMotion = useReducedMotion();
-  const [month, setMonth] = useState(localMonth);
-  const [tab, setTab] = useState("overview");
+export default function Analytics({ initialView = "spending" }) {
+  const { token } = useAuth()
+  const reducedMotion = useReducedMotion()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedMonth = searchParams.get("month")
+  const month =
+    /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth || "") &&
+    requestedMonth >= "2000-01" &&
+    requestedMonth <= localMonth()
+      ? requestedMonth
+      : localMonth()
+  const selectedView = searchParams.get("view")
+  const tab = ["spending", "review", "plan"].includes(selectedView)
+    ? selectedView
+    : initialView
+  const [coverageExpanded, setCoverageExpanded] = useState(false)
   const [state, setState] = useState({
     data: null,
     loading: true,
     error: "",
     errorCode: "",
-  });
-  const [revision, setRevision] = useState(0);
-  const [busy, setBusy] = useState(false);
-  const [actionError, setActionError] = useState("");
-  const [notice, setNotice] = useState("");
-  const action = useRef(null);
-  useEffect(() => () => action.current?.abort(), []);
+  })
+  const [revision, setRevision] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const [actionError, setActionError] = useState("")
+  const [notice, setNotice] = useState("")
+  const action = useRef(null)
+  useEffect(() => () => action.current?.abort(), [])
   useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    const timer = setTimeout(() => controller.abort(), 20000);
+    const controller = new AbortController()
+    let active = true
+    const timer = setTimeout(() => controller.abort(), 20000)
     async function load() {
       setState((previous) => ({
         ...previous,
         loading: true,
         error: "",
         errorCode: "",
-      }));
+      }))
       try {
         const data = await planningRequest(
           `?month=${encodeURIComponent(month)}`,
           { token, signal: controller.signal },
-        );
-        if (active)
-          setState({ data, loading: false, error: "", errorCode: "" });
+        )
+        if (active) setState({ data, loading: false, error: "", errorCode: "" })
       } catch (err) {
         if (active)
           setState((previous) => ({
@@ -350,71 +336,80 @@ export default function Analytics() {
               err.name === "AbortError"
                 ? "Analytics took too long to load. Please try again."
                 : err.message,
-          }));
+          }))
       } finally {
-        clearTimeout(timer);
+        clearTimeout(timer)
       }
     }
-    load();
-    const refresh = () => setRevision((value) => value + 1);
-    window.addEventListener("transactions-updated", refresh);
+    load()
+    const refresh = () => setRevision((value) => value + 1)
+    window.addEventListener("transactions-updated", refresh)
     return () => {
-      active = false;
-      clearTimeout(timer);
-      controller.abort();
-      window.removeEventListener("transactions-updated", refresh);
-    };
-  }, [month, revision, token]);
+      active = false
+      clearTimeout(timer)
+      controller.abort()
+      window.removeEventListener("transactions-updated", refresh)
+    }
+  }, [month, revision, token])
   async function mutate(path, method, body) {
-    if (busy || state.loading) return;
-    const controller = new AbortController();
-    action.current = controller;
-    setBusy(true);
-    setActionError("");
-    setNotice("");
+    if (busy || state.loading) return
+    const controller = new AbortController()
+    action.current = controller
+    setBusy(true)
+    setActionError("")
+    setNotice("")
     try {
       await planningRequest(path, {
         token,
         method,
         body,
         signal: controller.signal,
-      });
+      })
       setNotice(
         path.includes("confirm")
           ? "Recurring schedule confirmed. No expense has been created."
           : path.includes("feedback")
             ? "Your feedback was saved."
             : "Tracking coverage updated.",
-      );
-      setRevision((value) => value + 1);
+      )
+      setRevision((value) => value + 1)
     } catch (err) {
-      if (err.name !== "AbortError") setActionError(err.message);
+      if (err.name !== "AbortError") setActionError(err.message)
     } finally {
-      if (!controller.signal.aborted) setBusy(false);
+      if (!controller.signal.aborted) setBusy(false)
     }
   }
-  const data = state.data?.month === month ? state.data : null;
+  const data = state.data?.month === month ? state.data : null
   return (
-    <div className="planning-page">
+    <div className="planning-page analytics-simple">
       <div className="planning-toolbar">
         <div className="planning-tabs" role="group" aria-label="Analytics view">
           {[
-            ["overview", "Overview"],
-            ["ahead", "Plan ahead"],
-            ["patterns", "Your patterns"],
+            ["spending", "Spending"],
+            ["review", "My review"],
+            ["plan", "Plan ahead"],
           ].map(([value, label]) => (
             <button
               key={value}
               className={tab === value ? "active" : ""}
               aria-pressed={tab === value}
-              onClick={() => setTab(value)}
+              onClick={() =>
+                setSearchParams(
+                  (previous) => {
+                    const next = new URLSearchParams(previous)
+                    next.set("view", value)
+                    return next
+                  },
+                  { replace: true },
+                )
+              }
             >
               {label}
             </button>
           ))}
         </div>
         <label className="planning-month">
-          Recorded period
+          <span>Month</span>
           <input
             aria-label="Analytics month"
             type="month"
@@ -424,9 +419,18 @@ export default function Analytics() {
             disabled={busy}
             onChange={(e) => {
               if (e.target.value) {
-                setMonth(e.target.value);
-                setActionError("");
-                setNotice("");
+                const selectedMonth = e.target.value
+                setSearchParams(
+                  (previous) => {
+                    const next = new URLSearchParams(previous)
+                    next.set("month", selectedMonth)
+                    return next
+                  },
+                  { replace: true },
+                )
+                setCoverageExpanded(false)
+                setActionError("")
+                setNotice("")
               }
             }}
           />
@@ -440,8 +444,8 @@ export default function Analytics() {
           <div>
             <h2>
               {state.errorCode === "ANALYTICS_UNAVAILABLE"
-                ? "Your spending review is unavailable"
-                : "We couldn’t load your spending review"}
+                ? "Analytics is unavailable"
+                : "We couldn’t load Analytics"}
             </h2>
             <p>{state.error}</p>
             <div className="planning-error-actions">
@@ -449,7 +453,7 @@ export default function Analytics() {
                 className="btn btn-primary"
                 onClick={() => setRevision((value) => value + 1)}
               >
-                Check again
+                Try again
               </button>
               <Link className="btn" to="/dashboard/transactions">
                 View transactions <ChevronRight size={14} />
@@ -459,25 +463,20 @@ export default function Analytics() {
         </section>
       )}
       {!data && state.loading && (
-        <LoadingState variant="chart" label="Preparing your spending review…" />
+        <LoadingState variant="chart" label="Loading your analytics…" />
       )}
       {data && (
         <>
-          <div className="planning-context">
-            <span>
-              <span className="planning-badge">Recorded INR activity</span>{" "}
-              Through {dateLabel(data.periodEnd)} · {data.timezone}
-            </span>
-            <span role="status">
-              {state.loading || busy ? (
-                <LoadingIndicator>Updating your review…</LoadingIndicator>
-              ) : state.error ? (
-                "Previous review · refresh failed"
-              ) : (
-                "Based on your entries"
-              )}
-            </span>
-          </div>
+          {(state.loading || busy) && (
+            <p className="analytics-updating" role="status">
+              <LoadingIndicator>Updating…</LoadingIndicator>
+            </p>
+          )}
+          {state.error && (
+            <p className="analytics-quiet-note">
+              Showing your last loaded data.
+            </p>
+          )}
           <p className="planning-notice" role="status">
             {notice}
           </p>
@@ -486,337 +485,79 @@ export default function Analytics() {
               {actionError}
             </p>
           )}
-          <div className="planning-metrics">
-            <Metric
-              label="Recorded spending"
-              value={formatCurrency(data.summary.spending)}
-              caption={
-                data.summary.changePercent === null
-                  ? "No complete, nonzero comparison baseline"
-                  : `${data.summary.changePercent > 0 ? "+" : ""}${data.summary.changePercent}% versus the comparable previous period`
-              }
-            />
-            <Metric
-              label="Recorded net cash flow"
-              value={formatCurrency(data.summary.netCashFlow)}
-              caption="Recorded income minus expenses · not a bank balance"
-            />
-            <Metric
-              label="Remaining chosen budget"
-              value={
-                data.summary.remainingBudget === null
-                  ? "Not set"
-                  : formatCurrency(data.summary.remainingBudget)
-              }
-              caption="Before any unrecorded or upcoming spending"
-              icon={Target}
-            />
-            <Metric
-              label="Recorded savings rate"
-              value={
-                data.summary.savingsRate === null
-                  ? "Unavailable"
-                  : `${data.summary.savingsRate}%`
-              }
-              caption={
-                data.summary.savingsRate === null
-                  ? "Record income to calculate this measure"
-                  : "From recorded income and expenses in this period"
-              }
-              icon={ArrowDownRight}
-            />
-          </div>
-          {tab === "overview" && (
+          {tab === "spending" && (
+            <>
+              <MonthlySummary data={data} />
+              {data.categories.length ? (
+                <div className="planning-two-columns">
+                  <SpendingChart data={data} reducedMotion={reducedMotion} />
+                  <CategoryBreakdown key={month} data={data} />
+                </div>
+              ) : (
+                <section className="panel planning-section analytics-month-empty">
+                  <h2>No expenses recorded for this month</h2>
+                  <p>
+                    Choose another month or add an expense to see your spending
+                    breakdown.
+                  </p>
+                </section>
+              )}
+            </>
+          )}
+          {tab === "review" && (
             <>
               <SpendingValues key={month} month={month} />
-              <section className="planning-review">
-                <div className="planning-section-title">
-                  <Sparkles size={20} />
-                  <div>
-                    <h2>What’s worth knowing</h2>
-                    <p>A short review, with room for your own priorities.</p>
-                  </div>
-                </div>
-                <div className="planning-insight-grid">
-                  {data.insights.slice(0, 3).map((insight) => (
-                    <article
-                      className={`panel planning-insight tone-${insight.tone}`}
-                      key={insight.id}
-                    >
-                      <span className="planning-badge">
-                        Observed ·{" "}
-                        {insight.tone === "review"
-                          ? "Worth a look"
-                          : insight.tone === "progress"
-                            ? "Progress"
-                            : "Getting started"}
-                      </span>
-                      <h3>{insight.title}</h3>
-                      <p>{insight.message}</p>
-                      <Evidence rows={insight.evidence} />
-                      <div
-                        className="planning-feedback"
-                        role="group"
-                        aria-label={`Feedback on ${insight.title}`}
-                      >
-                        <button
-                          disabled={busy || state.loading}
-                          onClick={() =>
-                            mutate(`/insights/${insight.id}/feedback`, "POST", {
-                              month,
-                              response: "helpful",
-                            })
-                          }
-                        >
-                          <Check size={13} /> Helpful
-                        </button>
-                        <button
-                          disabled={busy || state.loading}
-                          onClick={() =>
-                            mutate(`/insights/${insight.id}/feedback`, "POST", {
-                              month,
-                              response:
-                                insight.tone === "review"
-                                  ? "expected"
-                                  : "dismissed",
-                            })
-                          }
-                        >
-                          {insight.tone === "review"
-                            ? "This was expected"
-                            : "Dismiss"}
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-                  {!data.insights.length && (
-                    <div className="panel planning-section">
-                      <h3>You’re up to date</h3>
-                      <p>
-                        Your feedback has cleared this review. Explore your
-                        plans or recorded patterns below.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </section>
-              <div className="planning-two-columns">
-                <SpendingChart data={data} reducedMotion={reducedMotion} />
-                <CategoryBreakdown data={data} />
-              </div>
-              <SavingsScenario
-                key={`${month}:${data.categories.map((c) => `${c.name}:${c.amount}`).join("|")}:${data.goals.map((g) => `${g.id}:${g.current}:${g.target}`).join("|")}`}
+              <RecordedInsights
                 data={data}
-                token={token}
+                mutate={mutate}
+                busy={busy || state.loading}
               />
             </>
           )}
-          {tab === "ahead" && (
+          {tab === "plan" && (
             <>
-              <section className="panel planning-section">
-                <div className="planning-section-title">
-                  <ChartNoAxesCombined size={20} />
-                  <div>
-                    <h2>Your spending outlook</h2>
-                    <p>
-                      Confirmed scheduled bills plus a weekday spending
-                      baseline.
-                    </p>
-                  </div>
-                </div>
-                {data.outlook.status === "ready" ? (
-                  <div className="planning-outlook">
-                    <span className="planning-badge">
-                      Estimate · {data.outlook.historyDays} confirmed history
-                      days
-                    </span>
-                    <strong>
-                      {formatCurrency(data.outlook.projectedSpending)} recorded
-                      + projected spending by month-end
-                    </strong>
-                    <p>
-                      {formatCurrency(data.summary.spending)} recorded +{" "}
-                      {formatCurrency(data.outlook.remainingVariable)} variable
-                      spending from tomorrow +{" "}
-                      {formatCurrency(data.outlook.upcomingBills)} scheduled
-                      bills.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="planning-empty">
-                    <h3>
-                      {data.outlook.status === "historical"
-                        ? "Recorded facts for a completed month"
-                        : data.outlook.status === "review_due_bills"
-                          ? "Review bills due today or overdue first"
-                          : "Build a reliable starting point"}
-                    </h3>
-                    <p>
-                      {data.outlook.status === "historical"
-                        ? "Choose the current month to see an outlook when your data is ready."
-                        : data.outlook.status === "review_due_bills"
-                          ? "An active schedule has an unresolved due date. Review recurring payments before using an outlook."
-                          : "An outlook needs at least 28 fully tracked days through yesterday and 12 recorded expenses. Confirm only dates you have fully reviewed."}
-                    </p>
-                    <Link to="/dashboard/recurring">
-                      Review recurring payments <ChevronRight size={14} />
-                    </Link>
-                  </div>
-                )}
-                <details className="planning-assumptions">
-                  <summary>How this estimate works</summary>
-                  <ul>
-                    {data.outlook.assumptions.map((text) => (
-                      <li key={text}>{text}</li>
-                    ))}
-                  </ul>
-                </details>
-                <h3 className="planning-subheading">
-                  Upcoming scheduled payments
-                </h3>
-                {data.outlook.bills.length ? (
-                  <ul className="planning-bills">
-                    {data.outlook.bills.map((b) => (
-                      <li key={`${b.id}-${b.date}`}>
-                        <CalendarDays size={17} />
-                        <span>
-                          {b.title}
-                          <small>{dateLabel(b.date)}</small>
-                        </span>
-                        <strong>{formatCurrency(b.amount)}</strong>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="planning-muted">
-                    No future scheduled expense in the remaining month. This
-                    does not prove that no bills are due.
-                  </p>
-                )}
-              </section>
-              <SavingsScenario
-                key={`${month}:${data.categories.map((c) => `${c.name}:${c.amount}`).join("|")}:${data.goals.map((g) => `${g.id}:${g.current}:${g.target}`).join("|")}`}
-                data={data}
-                token={token}
-              />
-            </>
-          )}
-          {tab === "patterns" && (
-            <>
-              <div className="planning-two-columns">
-                <CategoryBreakdown data={data} />
-                <SpendingChart data={data} reducedMotion={reducedMotion} />
+              <div className="planning-two-columns analytics-planning-tools">
+                <SpendingOutlook
+                  data={data}
+                  onReviewTracking={() => setCoverageExpanded(true)}
+                />
+                <SavingsScenario
+                  key={`${month}:${data.categories.map((c) => `${c.name}:${c.amount}`).join("|")}:${data.goals.map((g) => `${g.id}:${g.current}:${g.target}`).join("|")}`}
+                  data={data}
+                  token={token}
+                />
               </div>
-              <section className="planning-review">
-                <div className="planning-section-title">
-                  <CalendarDays size={20} />
-                  <div>
-                    <h2>Possible repeating expenses</h2>
-                    <p>
-                      Similar descriptions, timing and amounts. Confirm what
-                      belongs in your plan.
-                    </p>
-                  </div>
-                </div>
-                <div className="planning-candidate-grid">
-                  {data.recurringCandidates.map((candidate) => (
-                    <article
-                      className="panel planning-section"
-                      key={candidate.id}
-                    >
-                      <span className="planning-badge">
-                        Suggestion · {candidate.frequency}
-                      </span>
-                      <h3>{candidate.title}</h3>
-                      <p>
-                        {formatCurrency(candidate.amount)} · next suggested date{" "}
-                        {dateLabel(candidate.nextDate)}
-                      </p>
-                      <p>
-                        Three or more similar payments. Billing history cannot
-                        establish whether a subscription is used.
-                      </p>
-                      <Evidence rows={candidate.evidence} />
-                      <button
-                        className="btn"
-                        disabled={
-                          busy ||
-                          state.loading ||
-                          month !== data.asOf.slice(0, 7)
-                        }
-                        onClick={() =>
-                          mutate(
-                            `/recurring-candidates/${candidate.id}/confirm`,
-                            "POST",
-                            { month },
-                          )
-                        }
-                      >
-                        Confirm recurring schedule
-                      </button>
-                    </article>
-                  ))}
-                  {!data.recurringCandidates.length && (
-                    <div className="panel planning-empty">
-                      <h3>No unconfirmed repeating pattern yet</h3>
-                      <p>
-                        Patterns need at least three distinct payment dates. You
-                        can also add a known bill yourself.
-                      </p>
-                      <Link to="/dashboard/recurring">
-                        Manage recurring payments <ChevronRight size={14} />
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </section>
-              <section className="panel planning-section">
-                <div className="planning-section-title">
-                  <Target size={20} />
-                  <div>
-                    <h2>Your goal progress</h2>
-                    <p>
-                      Current recorded contributions, without assumptions about
-                      this week.
-                    </p>
-                  </div>
-                </div>
-                {data.goals.length ? (
-                  data.goals.map((goal) => (
-                    <div className="planning-goal" key={goal.id}>
-                      <span>{goal.name}</span>
-                      <strong>
-                        {formatCurrency(goal.current)} /{" "}
-                        {formatCurrency(goal.target)}
-                      </strong>
-                      <progress
-                        max="100"
-                        value={Math.min(100, goal.percent)}
-                        aria-label={`${goal.name} progress`}
-                      />
-                    </div>
-                  ))
-                ) : (
-                  <p className="planning-muted">
-                    Choose a savings goal to make future reviews more personal.
-                  </p>
-                )}
-                <Link to="/dashboard/goals">
-                  Manage savings goals <ChevronRight size={14} />
+              <RecurringSuggestions
+                data={data}
+                mutate={mutate}
+                busy={busy || state.loading}
+              />
+              <Coverage
+                key={`${month}:${data.coverage.from}:${data.coverage.through}`}
+                data={data}
+                mutate={mutate}
+                busy={busy || state.loading}
+                expanded={coverageExpanded}
+                onExpandedChange={setCoverageExpanded}
+              />
+              <div className="analytics-plan-links">
+                <Link to="/dashboard/budget">
+                  Manage budgets <ChevronRight size={14} />
                 </Link>
-              </section>
+                <Link to="/dashboard/goals">
+                  Savings goals <ChevronRight size={14} />
+                </Link>
+              </div>
             </>
           )}
-          <Coverage
-            key={`${month}:${data.coverage.from}:${data.coverage.through}`}
-            data={data}
-            mutate={mutate}
-            busy={busy || state.loading}
-          />
           <details className="planning-limitations">
             <summary>
-              <Info size={15} /> About your recorded data
+              <Info size={14} /> About these numbers
             </summary>
+            <p>
+              Based on your recorded INR entries through{" "}
+              {dateLabel(data.periodEnd)} · {data.timezone}.
+            </p>
             <ul>
               {data.limitations.map((text) => (
                 <li key={text}>{text}</li>
@@ -826,26 +567,18 @@ export default function Analytics() {
         </>
       )}
     </div>
-  );
+  )
 }
 
 function SpendingChart({ data, reducedMotion }) {
   return (
     <section className="panel planning-section">
-      <h2>Spending, day by day</h2>
-      <p>
-        Recorded expenses for the selected period. Gaps may be untracked days.
-      </p>
+      <h2>Daily spending</h2>
+      <p>Your recorded expenses. Blank days may have missing entries.</p>
       <div className="planning-chart">
         {data.categories.length ? (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data.days}>
-              <defs>
-                <linearGradient id="planning-spend" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#70956c" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#70956c" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
+            <BarChart data={data.days}>
               <CartesianGrid
                 strokeDasharray="3 5"
                 vertical={false}
@@ -873,16 +606,14 @@ function SpendingChart({ data, reducedMotion }) {
                   "Recorded spending",
                 ]}
               />
-              <Area
-                type="linear"
+              <Bar
                 dataKey="spending"
-                connectNulls={false}
-                stroke="#49765a"
-                fill="url(#planning-spend)"
-                strokeWidth={2}
+                fill="#78946b"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={20}
                 isAnimationActive={!reducedMotion}
               />
-            </AreaChart>
+            </BarChart>
           </ResponsiveContainer>
         ) : (
           <div className="planning-empty">
@@ -891,17 +622,19 @@ function SpendingChart({ data, reducedMotion }) {
         )}
       </div>
     </section>
-  );
+  )
 }
 
 function CategoryBreakdown({ data }) {
-  const total = Number(data.summary.spending);
+  const total = Number(data.summary.spending)
+  const [showAll, setShowAll] = useState(false)
+  const categories = showAll ? data.categories : data.categories.slice(0, 5)
   return (
     <section className="panel planning-section">
-      <h2>Where your recorded spending went</h2>
-      <p>Categories for this selected period.</p>
+      <h2>Top categories</h2>
+      <p>Your largest categories in this period.</p>
       <div className="planning-category-list">
-        {data.categories.map((category) => (
+        {categories.map((category) => (
           <div key={category.name}>
             <div>
               <span>{category.name}</span>
@@ -913,15 +646,30 @@ function CategoryBreakdown({ data }) {
               aria-label={`${category.name} share of spending`}
             />
             <small>
-              {category.count} recorded{" "}
-              {category.count === 1 ? "expense" : "expenses"}
+              {total > 0
+                ? Math.round((Number(category.amount) / total) * 100)
+                : 0}
+              % of spending
             </small>
           </div>
         ))}
         {!data.categories.length && (
-          <p className="planning-muted">No recorded expenses in this period.</p>
+          <p className="planning-muted">
+            Add an expense to see your categories.
+          </p>
         )}
       </div>
+      {data.categories.length > 5 && (
+        <button
+          className="text-link analytics-show-categories"
+          aria-expanded={showAll}
+          onClick={() => setShowAll((value) => !value)}
+        >
+          {showAll
+            ? "Show top five"
+            : `View all ${data.categories.length} categories`}
+        </button>
+      )}
     </section>
-  );
+  )
 }

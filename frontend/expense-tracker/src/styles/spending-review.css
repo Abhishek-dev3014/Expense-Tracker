@@ -235,3 +235,131 @@
     flex-wrap: wrap;
   }
 }
+
+.spending-review-title {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.spending-review-title > div {
+  flex: 1;
+  min-width: 160px;
+}
+.spending-review-count {
+  color: #536a50;
+  background: #eff4e9;
+  border-radius: 20px;
+  padding: 7px 11px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.spending-review-details h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.spending-review-panel .spending-rating-totals {
+  gap: 0;
+  padding: 18px 0 7px;
+  margin-top: 18px;
+  border-top: 1px solid #e5eade;
+}
+.spending-review-panel .spending-rating-total {
+  background: transparent;
+  padding: 0 16px 0 0;
+  border-radius: 0;
+}
+.spending-review-panel .spending-rating-total + .spending-rating-total {
+  padding-left: 16px;
+  border-left: 1px solid #e5eade;
+}
+.spending-review-panel .spending-rating-total span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.spending-review-panel .spending-rating-total span::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #629469;
+}
+.spending-review-panel .spending-rating-total.fine span::before {
+  background: #8b9fa7;
+}
+.spending-review-panel .spending-rating-total.improve span::before {
+  background: #bf9456;
+}
+.spending-review-panel .spending-rating-total.unreviewed span::before {
+  background: #b9beb3;
+}
+.spending-review-panel .spending-review-purchases strong {
+  display: block;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.spending-review-panel .spending-review-purchases li > div {
+  flex: 1;
+  min-width: 0;
+}
+.spending-review-panel .spending-review-purchases select {
+  min-height: 42px;
+}
+.spending-review-panel .spending-review-select.good {
+  background: #f0f6ed;
+  color: #406444;
+}
+.spending-review-panel .spending-review-select.improve {
+  background: #fcf6e9;
+  color: #806131;
+}
+.spending-review-panel .spending-review-select.fine {
+  background: #f0f4f5;
+  color: #51656c;
+}
+.spending-review-panel .text-link {
+  font-size: 12px;
+}
+.spending-review-panel .spending-review-details summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+}
+.spending-review-panel .spending-review-details summary::after {
+  content: "+";
+  font-size: 17px;
+  margin-left: auto;
+  font-weight: 400;
+}
+.spending-review-panel .spending-review-details[open] summary::after {
+  content: "−";
+}
+.spending-review-panel
+  .spending-review-details
+  summary::-webkit-details-marker {
+  display: none;
+}
+@media (max-width: 700px) {
+  .spending-review-panel .spending-rating-totals {
+    row-gap: 20px;
+  }
+  .spending-review-panel .spending-rating-total:nth-child(3) {
+    border-left: 0;
+    padding-left: 0;
+  }
+  .spending-review-panel .spending-review-purchases li {
+    flex-wrap: nowrap;
+  }
+  .spending-review-panel .spending-review-purchases select {
+    max-width: 145px;
+    padding: 9px 5px;
+  }
+}
+@media (max-width: 390px) {
+  .spending-review-panel .spending-review-purchases li {
+    flex-wrap: wrap;
+  }
+}

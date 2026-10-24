@@ -21,7 +21,7 @@ const pages = {
   ],
   analytics: [
     "Analytics",
-    "Understand where your money goes and how your habits change.",
+    "Your spending, your habits, and a plan for what’s next.",
   ],
   budget: ["Budgets", "Give your spending a plan and keep the month on track."],
   insights: [
@@ -205,14 +205,14 @@ export default function DashboardLayout() {
       )}
       <div className="main-content" inert={sidebarOpen ? true : undefined}>
         <Topbar title={title} onOpenSidebar={() => setSidebarOpen(true)} />
-        <main className={`main-scroller${!section || section === "transactions" ? " tracking-workspace" : ""}`} id="main-content">
+        <main className={`main-scroller${!section || section === "transactions" ? " tracking-workspace" : ""}${section === "analytics" || section === "insights" ? " analytics-workspace" : ""}`} id="main-content">
           <div className="page-header">
             <div>
-              <div className="page-kicker">
+              {section !== "analytics" && section !== "insights" && <div className="page-kicker">
                 {!section
                   ? `WELCOME BACK${user?.name ? `, ${user.name.split(" ")[0].toUpperCase()}` : ""}`
                   : "YOUR PERSONAL FINANCE SPACE"}
-              </div>
+              </div>}
               <h1>{!section ? "Your money, at a glance." : title}</h1>
               <p>
                 {!section && expensesOnly
@@ -221,7 +221,7 @@ export default function DashboardLayout() {
               </p>
             </div>
             <div className="page-actions">
-              {(section || !expensesOnly) && (
+              {section !== "analytics" && section !== "insights" && (section || !expensesOnly) && (
                 <button onClick={() => setShowIncome(true)} className="btn">
                   <ArrowDownLeft size={15} />
                   Add income

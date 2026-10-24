@@ -15,8 +15,8 @@ These are product precedents, not FinTrack customer interviews, clinical evidenc
 ## What customers can do
 
 1. In Add/Edit expense, optionally choose **Good for me**, **Fine for me**, or **Could improve**. Tap the selected rating again to clear it. Save the expense normally. A rating remains separate from its category.
-2. In Analytics → Overview, use **Spending that feels right for you** to see recorded amounts/counts for each confirmed rating and a separate Not rated total. Review up to 15 recent expenses; edit transactions to review older ones.
-3. Expand **Personal suggestions and preferences**. Enable learning explicitly to use only that account's confirmed ratings. Disable it to stop consulting review history for suggestions. Financial records remain intact.
+2. In Analytics → My review, use **Purchase review** to see recorded amounts/counts for each confirmed rating and a separate Not rated total. Review up to 15 recent expenses; edit transactions to review older ones.
+3. Expand **Suggestion settings**. Enable learning explicitly to use only that account's confirmed ratings. Disable it to stop consulting review history for suggestions. Financial records remain intact.
 4. Optionally enable the everyday-food guide. It suggests Good for me for descriptions containing milk, fruits, vegetables, groceries or home foods, and Could improve for ice cream, takeaway/outside food and listed treat descriptions. Both matching groups, negated descriptions and unfamiliar items abstain. This opt-in guide is a simple editable starting preference, not a trained model or nutritional advice.
 5. Save an exact-description preference with any of the three ratings. It takes priority over learning and the starter guide. Preferences ignore case, Unicode compatibility, punctuation and spacing. Remove a preference from the list to stop using it; existing expense ratings remain unchanged.
 6. For a suggestion in the modal, choose **Use this rating** to accept it. Suggestions never silently rewrite ratings or enter the reviewed totals.

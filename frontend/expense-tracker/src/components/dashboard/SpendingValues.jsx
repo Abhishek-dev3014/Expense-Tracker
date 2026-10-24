@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Heart, Sparkles, Trash2 } from "lucide-react"
+import { Heart, Settings2, Trash2 } from "lucide-react"
 import { useAuth } from "../../context/AuthContext"
 import {
   SPENDING_VALUES,
@@ -12,6 +12,7 @@ export default function SpendingValues({ month }) {
   const { token } = useAuth()
   const [state, setState] = useState({ data: null, error: "" })
   const [revision, setRevision] = useState(0)
+  const [showAll, setShowAll] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState("")
   const pending = useRef(null)
@@ -83,94 +84,125 @@ export default function SpendingValues({ month }) {
       <div className="spending-review-title">
         <Heart size={21} />
         <div>
-          <h2 id="spending-review-heading">
-            Spending that feels right for you
-          </h2>
-          <p>
-            Your own good, fine and could-improve choices. Suggestions never
-            count as confirmed ratings.
-          </p>
+          <h2 id="spending-review-heading">Purchase review</h2>
+          <p>How your purchases fit your priorities.</p>
         </div>
+        {data?.expenseCount > 0 && (
+          <span className="spending-review-count">
+            {data.reviewedCount} of {data.expenseCount} rated
+          </span>
+        )}
       </div>
-      {state.error && <p role="status">{state.error}</p>}
+      {state.error && (
+        <p role="status">
+          {state.error}{" "}
+          <button
+            className="text-link"
+            onClick={() => setRevision((value) => value + 1)}
+          >
+            Try again
+          </button>
+        </p>
+      )}
       {!data && !state.error && (
         <p role="status">Preparing your personal spending review…</p>
       )}
       {data && (
         <>
-          <div className="spending-rating-totals">
-            {data.totals.map((item) => (
-              <div
-                className={`spending-rating-total ${item.value}`}
-                key={item.value}
-              >
-                <span>{spendingLabel(item.value)}</span>
-                <strong>{formatCurrency(item.amount)}</strong>
-                <small>
-                  {item.count} {item.count === 1 ? "purchase" : "purchases"}
-                </small>
-              </div>
-            ))}
-          </div>
-          <p className="spending-value-help">
-            You have rated {data.reviewedCount} of {data.expenseCount} recorded
-            expenses this month. “Could improve” is a reflection, not guaranteed
-            savings.
-          </p>
-          <details className="spending-review-details">
-            <summary>Review recent purchases</summary>
+          {data.expenseCount > 0 && (
+            <div className="spending-rating-totals">
+              {data.totals.map((item) => (
+                <div
+                  className={`spending-rating-total ${item.value}`}
+                  key={item.value}
+                >
+                  <span>{spendingLabel(item.value)}</span>
+                  <strong>{formatCurrency(item.amount)}</strong>
+                  <small>
+                    {item.count} {item.count === 1 ? "purchase" : "purchases"}
+                  </small>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="spending-review-details">
+            <h3>Recent purchases</h3>
             <p className="spending-value-help">
-              Up to 15 recent expenses. Edit any transaction to rate older
-              purchases.
+              Only ratings you confirm appear in the totals.
             </p>
             {data.purchases.length === 0 ? (
-              <p>Add an expense to start your review.</p>
+              <p className="spending-value-help">
+                Add your first expense, then choose a rating that feels right
+                for you.
+              </p>
             ) : (
               <ul className="spending-review-purchases">
-                {data.purchases.map((item) => (
-                  <li key={item.id}>
-                    <div>
-                      <strong>{item.description}</strong>
-                      <small>
-                        {item.date} · {item.category} ·{" "}
-                        {formatCurrency(item.amount)}
-                      </small>
-                    </div>
-                    <label>
-                      <span className="sr-only">Rate {item.description}</span>
-                      <select
-                        value={item.value || "unreviewed"}
-                        disabled={busy}
-                        onChange={(e) =>
-                          mutate(
-                            `/transactions/${item.id}`,
-                            "PUT",
-                            { value: e.target.value },
-                            "Your rating was saved.",
-                          )
-                        }
-                      >
-                        <option value="unreviewed">Not rated</option>
-                        {SPENDING_VALUES.map((v) => (
-                          <option key={v.value} value={v.value}>
-                            {v.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </li>
-                ))}
+                {(showAll ? data.purchases : data.purchases.slice(0, 5)).map(
+                  (item) => (
+                    <li key={item.id}>
+                      <div>
+                        <strong>{item.description}</strong>
+                        <small>
+                          {new Date(`${item.date}T12:00:00`).toLocaleDateString(
+                            "en-IN",
+                            { day: "numeric", month: "short" },
+                          )}{" "}
+                          · {item.category} · {formatCurrency(item.amount)}
+                        </small>
+                      </div>
+                      <label>
+                        <span className="sr-only">Rate {item.description}</span>
+                        <select
+                          className={`spending-review-select ${item.value || "unreviewed"}`}
+                          value={item.value || "unreviewed"}
+                          disabled={busy}
+                          onChange={(e) =>
+                            mutate(
+                              `/transactions/${item.id}`,
+                              "PUT",
+                              { value: e.target.value },
+                              "Your rating was saved.",
+                            )
+                          }
+                        >
+                          <option value="unreviewed">Not rated</option>
+                          {SPENDING_VALUES.map((v) => (
+                            <option key={v.value} value={v.value}>
+                              {v.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </li>
+                  ),
+                )}
               </ul>
             )}
-          </details>
+            {data.purchases.length > 5 && (
+              <button
+                type="button"
+                className="text-link"
+                aria-expanded={showAll}
+                onClick={() => setShowAll((value) => !value)}
+              >
+                {showAll
+                  ? "Show fewer purchases"
+                  : `Show ${data.purchases.length - 5} more purchases`}
+              </button>
+            )}
+            {data.expenseCount > 15 && (
+              <p className="spending-value-help">
+                Edit older expenses in Transactions to rate them.
+              </p>
+            )}
+          </div>
           <details className="spending-review-details">
             <summary>
-              <Sparkles size={15} /> Personal suggestions and preferences
+              <Settings2 size={15} /> Suggestion settings
             </summary>
             <p className="spending-value-help">
-              Keep these off for manual ratings only. Suggestions use only your
-              account and always wait for your confirmation. No ratings are
-              shared with other customers.
+              Optional suggestions use your account only. You always choose the
+              final rating.
             </p>
             <fieldset disabled={busy} className="spending-preferences">
               <label>
@@ -189,13 +221,12 @@ export default function SpendingValues({ month }) {
                     )
                   }
                 />{" "}
-                Learn from my confirmed ratings
+                Learn from my ratings
               </label>
               <small>
-                Remembers consistent exact descriptions first. After six
-                different descriptions across two ratings, a nearest-neighbour
-                model can suggest similar purchases. Conflicting examples are
-                left for review.
+                Suggest ratings from purchases you have already reviewed.
+                Similar purchases need six different descriptions across two
+                ratings.
               </small>
               <label>
                 <input
@@ -213,13 +244,12 @@ export default function SpendingValues({ month }) {
                     )
                   }
                 />{" "}
-                Use the everyday-food starter preferences
+                Use food starter suggestions
               </label>
               <small>
-                Suggest “Good for me” for milk, fruits and home foods; “Could
-                improve” for ice cream, takeaway and outside food. These are
-                editable spending preferences, not nutritional advice. Mixed or
-                unclear purchases stay unrated.
+                Start with milk, fruits and home food as “Good for me,” and ice
+                cream or takeaway as “Could improve.” Change any suggestion to
+                suit you.
               </small>
             </fieldset>
             <form
@@ -239,7 +269,7 @@ export default function SpendingValues({ month }) {
               }}
             >
               <label className="form-field">
-                Remember a description
+                Purchase description
                 <input
                   name="description"
                   placeholder="e.g. Friday dinner with friends"
@@ -249,7 +279,7 @@ export default function SpendingValues({ month }) {
                 />
               </label>
               <label className="form-field">
-                Your preferred rating
+                Preferred rating
                 <select name="value" disabled={busy}>
                   {SPENDING_VALUES.map((v) => (
                     <option key={v.value} value={v.value}>
@@ -259,13 +289,12 @@ export default function SpendingValues({ month }) {
                 </select>
               </label>
               <button className="btn" disabled={busy}>
-                Remember preference
+                Save preference
               </button>
             </form>
             <p className="spending-value-help">
-              Exact descriptions ignore case, punctuation and spacing. Existing
-              expenses stay unchanged. Your saved preference takes priority over
-              learning and the starter guide.
+              Saved preferences apply to matching descriptions and take priority
+              over suggestions. They do not change past ratings.
             </p>
             {data.rules.length > 0 && (
               <ul className="spending-rule-list">
