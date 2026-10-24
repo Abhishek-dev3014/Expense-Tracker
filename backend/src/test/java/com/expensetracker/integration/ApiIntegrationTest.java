@@ -87,6 +87,8 @@ class ApiIntegrationTest {
                         "categoryrules",
                         "analyticscoverage",
                         "insightfeedback",
+                        "spendingpreferences",
+                        "spendingvaluerules",
                         "budgets",
                         "goals",
                         "recurringtransactions",
@@ -1322,5 +1324,258 @@ class ApiIntegrationTest {
                                 new Query(Criteria.where("user").is(new ObjectId(userId(owner)))),
                                 "transactions"))
                 .isEqualTo(3);
+    }
+
+    @Test
+    void spendingRatingsPersistWithoutChangingMoneyAndAreAccountScoped() throws Exception {
+        String owner = signup("values-owner@example.com"),
+                other = signup("values-other@example.com");
+        var tx =
+                expense(owner, "Milk", "Home foods", 120, LocalDate.now(ZoneOffset.UTC).toString());
+        String id = tx.get("_id").asString();
+        call(get("/api/spending-review"), null, null, 401);
+        call(
+                put("/api/spending-review/transactions/" + id),
+                other,
+                Map.of("value", "improve"),
+                404);
+        var saved =
+                call(
+                        put("/api/spending-review/transactions/" + id),
+                        owner,
+                        Map.of("value", "good"),
+                        200);
+        assertThat(saved.get("spendingValue").asString()).isEqualTo("good");
+        assertThat(saved.get("amount").asDouble()).isEqualTo(-120);
+        assertThat(call(get("/api/spending-review"), owner, null, 200).get("reviewedCount").asInt())
+                .isEqualTo(1);
+        assertThat(call(get("/api/spending-review"), other, null, 200).get("expenseCount").asInt())
+                .isZero();
+        call(put("/api/spending-review/transactions/" + id), owner, Map.of("value", "bad"), 400);
+        call(
+                put("/api/spending-review/transactions/" + id),
+                owner,
+                Map.of("value", "unreviewed"),
+                200);
+        assertThat(call(get("/api/spending-review"), owner, null, 200).get("reviewedCount").asInt())
+                .isZero();
+        var income =
+                call(
+                        post("/api/income"),
+                        owner,
+                        Map.of("title", "Salary", "amount", 1000, "category", "Income"),
+                        201);
+        call(
+                put("/api/spending-review/transactions/" + income.get("_id").asString()),
+                owner,
+                Map.of("value", "good"),
+                404);
+    }
+
+    @Test
+    void foodGuideRequiresOptInAndPersonalRulesOverrideItWithoutRetroactiveWrites()
+            throws Exception {
+        String token = signup("food-guide@example.com"), other = signup("food-other@example.com");
+        var milk = Map.of("description", "milk");
+        assertThat(
+                        call(post("/api/spending-review/suggest"), token, milk, 200)
+                                .get("value")
+                                .isNull())
+                .isTrue();
+        call(
+                put("/api/spending-review/preferences"),
+                token,
+                Map.of("learningEnabled", false, "foodGuideEnabled", true),
+                200);
+        assertThat(
+                        call(post("/api/spending-review/suggest"), token, milk, 200)
+                                .get("value")
+                                .asString())
+                .isEqualTo("good");
+        assertThat(
+                        call(
+                                        post("/api/spending-review/suggest"),
+                                        token,
+                                        Map.of("description", "ice cream"),
+                                        200)
+                                .get("value")
+                                .asString())
+                .isEqualTo("improve");
+        assertThat(
+                        call(
+                                        post("/api/spending-review/suggest"),
+                                        token,
+                                        Map.of("description", "milk and ice cream"),
+                                        200)
+                                .get("value")
+                                .isNull())
+                .isTrue();
+        assertThat(
+                        call(
+                                        post("/api/spending-review/suggest"),
+                                        token,
+                                        Map.of("description", "milkshake"),
+                                        200)
+                                .get("value")
+                                .isNull())
+                .isTrue();
+        assertThat(
+                        call(
+                                        post("/api/spending-review/suggest"),
+                                        token,
+                                        Map.of("description", "no ice cream"),
+                                        200)
+                                .get("value")
+                                .isNull())
+                .isTrue();
+        var rule =
+                call(
+                        post("/api/spending-review/rules"),
+                        token,
+                        Map.of("description", "ice cream", "value", "fine"),
+                        200);
+        assertThat(
+                        call(
+                                        post("/api/spending-review/suggest"),
+                                        token,
+                                        Map.of("description", "ICE CREAM!"),
+                                        200)
+                                .get("value")
+                                .asString())
+                .isEqualTo("fine");
+        assertThat(
+                        call(
+                                        post("/api/spending-review/suggest"),
+                                        other,
+                                        Map.of("description", "ice cream"),
+                                        200)
+                                .get("value")
+                                .isNull())
+                .isTrue();
+        call(delete("/api/spending-review/rules/" + rule.get("id").asString()), other, null, 404);
+        call(delete("/api/spending-review/rules/" + rule.get("id").asString()), token, null, 204);
+        assertThat(call(get("/api/spending-review"), token, null, 200).get("expenseCount").asInt())
+                .isZero();
+    }
+
+    @Test
+    void manualRatingsAreOptionalAndChangedExpenseDetailsInvalidateOldRatings() throws Exception {
+        String token = signup("value-edit@example.com");
+        var original =
+                call(
+                        post("/api/expense"),
+                        token,
+                        Map.of(
+                                "title",
+                                "milk",
+                                "amount",
+                                100,
+                                "category",
+                                "Home foods",
+                                "spendingValue",
+                                "good"),
+                        201);
+        String id = original.get("_id").asString();
+        var changed =
+                call(
+                        put("/api/transactions/" + id),
+                        token,
+                        Map.of("title", "ice cream", "amount", 100, "category", "Home foods"),
+                        200);
+        assertThat(changed.get("spendingValue").isNull()).isTrue();
+        call(
+                put("/api/transactions/" + id),
+                token,
+                Map.of(
+                        "title",
+                        "ice cream",
+                        "amount",
+                        100,
+                        "category",
+                        "Home foods",
+                        "spendingValue",
+                        "fine"),
+                200);
+        assertThat(call(get("/api/spending-review"), token, null, 200).get("reviewedCount").asInt())
+                .isEqualTo(1);
+        call(
+                post("/api/income"),
+                token,
+                Map.of("title", "Salary", "amount", 1000, "spendingValue", "good"),
+                400);
+    }
+
+    @Test
+    void personalLearningUsesOnlyConfirmedOwnedExamplesAndCanBeTurnedOff() throws Exception {
+        String token = signup("value-learning@example.com"),
+                other = signup("value-other-learning@example.com");
+        var tx =
+                call(
+                        post("/api/expense"),
+                        token,
+                        Map.of(
+                                "title",
+                                "weekend ice cream",
+                                "amount",
+                                100,
+                                "category",
+                                "Food",
+                                "spendingValue",
+                                "fine"),
+                        201);
+        call(
+                put("/api/spending-review/preferences"),
+                token,
+                Map.of("learningEnabled", true, "foodGuideEnabled", false),
+                200);
+        var suggestion =
+                call(
+                        post("/api/spending-review/suggest"),
+                        token,
+                        Map.of("description", "weekend ice cream"),
+                        200);
+        assertThat(suggestion.get("source").asString()).isEqualTo("personal_history");
+        assertThat(suggestion.get("value").asString()).isEqualTo("fine");
+        assertThat(
+                        call(
+                                        post("/api/spending-review/suggest"),
+                                        token,
+                                        Map.of(
+                                                "description",
+                                                "weekend ice cream",
+                                                "excludeTransactionId",
+                                                tx.get("_id").asString()),
+                                        200)
+                                .get("value")
+                                .isNull())
+                .isTrue();
+        call(
+                put("/api/spending-review/preferences"),
+                other,
+                Map.of("learningEnabled", true, "foodGuideEnabled", false),
+                200);
+        assertThat(
+                        call(
+                                        post("/api/spending-review/suggest"),
+                                        other,
+                                        Map.of("description", "weekend ice cream"),
+                                        200)
+                                .get("value")
+                                .isNull())
+                .isTrue();
+        call(
+                put("/api/spending-review/preferences"),
+                token,
+                Map.of("learningEnabled", false, "foodGuideEnabled", false),
+                200);
+        assertThat(
+                        call(
+                                        post("/api/spending-review/suggest"),
+                                        token,
+                                        Map.of("description", "weekend ice cream"),
+                                        200)
+                                .get("value")
+                                .isNull())
+                .isTrue();
     }
 }

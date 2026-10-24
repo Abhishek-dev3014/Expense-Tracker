@@ -11,9 +11,20 @@ public record CreateTransactionRequest(
         @Size(max = 40) String category,
         @Size(max = 40) String date,
         @Pattern(regexp = "income|expense") String type,
-        Boolean rememberCategory) {
+        Boolean rememberCategory,
+        @Pattern(regexp = "good|fine|improve|unreviewed") String spendingValue) {
+    public CreateTransactionRequest(
+            String title,
+            BigDecimal amount,
+            String category,
+            String date,
+            String type,
+            Boolean rememberCategory) {
+        this(title, amount, category, date, type, rememberCategory, null);
+    }
+
     public CreateTransactionRequest(
             String title, BigDecimal amount, String category, String date, String type) {
-        this(title, amount, category, date, type, false);
+        this(title, amount, category, date, type, false, null);
     }
 }

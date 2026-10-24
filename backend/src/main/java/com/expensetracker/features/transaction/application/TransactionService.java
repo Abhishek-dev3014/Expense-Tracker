@@ -88,6 +88,14 @@ public class TransactionService {
                 input.category() == null || input.category().isBlank()
                         ? ("income".equals(type) ? "Income" : "General")
                         : input.category().strip());
+        if (input.spendingValue() != null) {
+            if (!"expense".equals(type))
+                throw ApiException.badRequest("Spending ratings are available for expenses only.");
+            if (!"unreviewed".equals(input.spendingValue())) {
+                tx.setSpendingValue(input.spendingValue());
+                tx.setSpendingValueReviewedAt(clock.instant());
+            }
+        }
         tx.setDate(Dates.parse(input.date(), clock.instant()));
         return tx;
     }
@@ -199,6 +207,14 @@ public class TransactionService {
                     new ArrayList<>(
                             history.subList(Math.max(0, history.size() - 20), history.size())));
         }
+        boolean descriptionChanged =
+                !Objects.equals(tx.getTitle(), updated.getTitle())
+                        || tx.getAmount().compareTo(updated.getAmount()) != 0
+                        || !Objects.equals(tx.getCategory(), updated.getCategory());
+        if (input.spendingValue() != null || descriptionChanged) {
+            tx.setSpendingValue(updated.getSpendingValue());
+            tx.setSpendingValueReviewedAt(updated.getSpendingValueReviewedAt());
+        }
         tx.setTitle(updated.getTitle());
         tx.setAmount(updated.getAmount());
         tx.setCategory(updated.getCategory());
@@ -225,5 +241,13 @@ public class TransactionService {
 
     public void delete(String user, String id) {
         transactions.delete(owned(user, id));
+    }
+
+    public Transaction reviewSpending(String user, String id, String value) {
+        if (!List.of("good", "fine", "improve", "unreviewed").contains(value))
+            throw ApiException.badRequest("Choose a valid spending rating.");
+        var saved = queries.reviewSpending(user, id, value, clock.instant());
+        if (saved == null) throw ApiException.notFound("Expense");
+        return saved;
     }
 }

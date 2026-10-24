@@ -1,0 +1,237 @@
+.spending-value-field {
+  margin: 18px 0 22px;
+  padding: 18px;
+  border: 1px solid #dce6d4;
+  border-radius: 15px;
+  background: #f6f8f1;
+}
+.spending-value-heading {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 13px;
+}
+.spending-value-heading span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.spending-value-choices {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 13px 0 10px;
+}
+.spending-choice {
+  flex: 1;
+  min-width: 95px;
+  background: #fff;
+  border: 1px solid #d8e0d4;
+  border-radius: 10px;
+  padding: 11px 8px;
+  color: #41584a;
+  font-size: 12px;
+  cursor: pointer;
+}
+.spending-choice[aria-pressed="true"] {
+  border-color: #3e7058;
+  background: #e6f1e6;
+  box-shadow: inset 0 0 0 1px #3e7058;
+  font-weight: 650;
+}
+.spending-choice.improve[aria-pressed="true"] {
+  border-color: #a57c37;
+  background: #f8efd9;
+  box-shadow: inset 0 0 0 1px #a57c37;
+}
+.spending-value-help {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 8px 0;
+}
+.spending-suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding-top: 12px;
+  border-top: 1px solid #dce6d4;
+  margin-top: 12px;
+  color: #396448;
+  font-size: 12px;
+}
+.spending-suggestion p {
+  margin: 5px 0 9px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.spending-review-panel {
+  padding: 25px;
+}
+.spending-review-title {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  color: #3a6650;
+}
+.spending-review-title h2 {
+  font-size: 18px;
+  margin: 0 0 7px;
+}
+.spending-review-title p {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin: 0;
+}
+.spending-rating-totals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+.spending-rating-total {
+  background: #f5f7ef;
+  border-radius: 12px;
+  padding: 17px;
+  display: grid;
+  gap: 8px;
+}
+.spending-rating-total strong {
+  font-size: 22px;
+  letter-spacing: -0.6px;
+}
+.spending-rating-total span,
+.spending-rating-total small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.spending-rating-total.improve {
+  background: #faf2e5;
+}
+.spending-rating-total.fine {
+  background: #edf3f2;
+}
+.spending-rating-total.unreviewed {
+  background: #f2f2ef;
+}
+.spending-review-details {
+  border-top: 1px solid #e3e9df;
+  margin-top: 18px;
+  padding-top: 17px;
+}
+.spending-review-details summary {
+  cursor: pointer;
+  color: #3e6250;
+  font-size: 13px;
+  font-weight: 600;
+}
+.spending-review-details summary svg {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+.spending-review-purchases,
+.spending-rule-list {
+  list-style: none;
+  padding: 0;
+  margin: 13px 0;
+}
+.spending-review-purchases li,
+.spending-rule-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf0e8;
+  font-size: 12px;
+}
+.spending-review-purchases small,
+.spending-rule-list small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 5px;
+}
+.spending-review-purchases select,
+.spending-rule-form select,
+.spending-rule-form input {
+  background: #fff;
+  border: 1px solid #dce4d6;
+  padding: 10px;
+  border-radius: 9px;
+  color: var(--text);
+  font-size: 12px;
+}
+.spending-preferences {
+  border: 0;
+  padding: 0;
+  margin: 17px 0;
+  display: grid;
+  gap: 11px;
+}
+.spending-preferences label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 550;
+}
+.spending-preferences input {
+  accent-color: #396448;
+}
+.spending-preferences small {
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 12px;
+  margin: -4px 0 10px 23px;
+}
+.spending-rule-form {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.spending-rule-form .form-field {
+  flex: 1;
+  min-width: 150px;
+  margin: 0;
+}
+.spending-review-notice:empty {
+  display: none;
+}
+.spending-review-notice {
+  color: #396448;
+  margin-top: 15px;
+  font-size: 12px;
+}
+.spending-value-badge {
+  display: inline-block;
+  border-radius: 5px;
+  padding: 3px 6px;
+  margin-top: 5px;
+  font-size: 10px;
+  background: #edf3e7;
+  color: #436346;
+}
+.spending-value-badge.fine {
+  background: #eaf0ef;
+  color: #46645d;
+}
+.spending-value-badge.improve {
+  background: #f8eedb;
+  color: #87652f;
+}
+@media (max-width: 700px) {
+  .spending-rating-totals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .spending-review-panel {
+    padding: 20px;
+  }
+  .spending-review-purchases li {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}

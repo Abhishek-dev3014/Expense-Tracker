@@ -27,6 +27,10 @@ public class TransactionReadService {
         return queries.inMonth(user, start, endExclusive);
     }
 
+    public List<Transaction> spendingReviewExamples(String user) {
+        return queries.spendingReviewExamples(user);
+    }
+
     public long count(String user) {
         return transactions.countByUser(user);
     }

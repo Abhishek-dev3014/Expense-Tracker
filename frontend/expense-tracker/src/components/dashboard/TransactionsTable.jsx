@@ -1,3 +1,5 @@
+import { spendingLabel } from "../../utils/spendingReview"
+import "../../styles/spending-review.css"
 import { Link } from "react-router-dom"
 import {
   ArrowLeft,
@@ -85,6 +87,11 @@ export default function TransactionsTable({
                         </span>
                         <span>
                           {tx.title || "Untitled transaction"}
+                          {tx.type !== "income" && tx.spendingValue && (
+                            <small className={`spending-value-badge ${tx.spendingValue}`}>
+                              {spendingLabel(tx.spendingValue)}
+                            </small>
+                          )}
                           <small className="transaction-subtitle">
                             {tx.category} ·{" "}
                             {new Date(tx.date).toLocaleDateString("en-IN", {

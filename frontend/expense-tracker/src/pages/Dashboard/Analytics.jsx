@@ -28,6 +28,7 @@ import useReducedMotion from "../../hooks/useReducedMotion";
 import { planningRequest, localMonth } from "../../utils/planningApi";
 import { formatCurrency } from "../../utils/finance";
 import "../../styles/planning.css";
+import SpendingValues from "../../components/dashboard/SpendingValues";
 
 const dateLabel = (value) =>
   new Date(`${value}T12:00:00`).toLocaleDateString("en-IN", {
@@ -527,6 +528,7 @@ export default function Analytics() {
           </div>
           {tab === "overview" && (
             <>
+              <SpendingValues key={month} month={month} />
               <section className="planning-review">
                 <div className="planning-section-title">
                   <Sparkles size={20} />

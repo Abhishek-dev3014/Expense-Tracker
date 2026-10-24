@@ -16,6 +16,9 @@ import org.springframework.data.mongodb.core.mapping.*;
 @TypeAlias("transactions")
 @Document("transactions")
 @CompoundIndex(name = "user_date", def = "{'user': 1, 'date': -1}")
+@CompoundIndex(
+        name = "user_reviewed_value",
+        def = "{'user': 1, 'type': 1, 'spendingValue': 1, 'spendingValueReviewedAt': -1}")
 public class Transaction extends BaseDocument {
 
     @Field(targetType = FieldType.OBJECT_ID)
@@ -29,6 +32,8 @@ public class Transaction extends BaseDocument {
     private String type;
     private String category = "General";
     private String recurringScheduleId;
+    private String spendingValue;
+    private Instant spendingValueReviewedAt;
     private double aiConfidence;
     private String categoryStatus = "manual";
     private List<CategoryCorrection> categoryHistory = new ArrayList<>();
